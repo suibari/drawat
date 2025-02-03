@@ -1,2 +1,17 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script lang="ts">
+  import { login, user } from '../lib/oauth/handleOAuth';
+  import { onMount } from 'svelte';
+  import { writable } from 'svelte/store';
+
+  let handle = '';
+  const loginError = writable<string | null>(null);
+</script>
+
+<input type="text" bind:value={handle} placeholder="Bluesky ハンドル名" />
+<button on:click={() => login(handle)}>Blueskyでログイン</button>
+
+{#if $user}
+  <p>ログイン成功: {$user.sub}</p>
+{:else if $loginError}
+  <p style="color: red;">ログインエラー: {$loginError}</p>
+{/if}

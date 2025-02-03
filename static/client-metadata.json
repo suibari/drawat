@@ -1,0 +1,14 @@
+{
+  "client_id": "https://drawat.suibari.com/client-metadata.json" ,
+  "client_name": "DrawAt" ,
+  "client_uri": "https://drawat.suibari.com" ,
+  "logo_uri": "https://my-app.com/ogp.png" ,
+  "policy_uri": "https://drawat.suibari.com" ,
+  "redirect_uris": [ "https://drawat.suibari.com/callback" ],
+  "scope": "atproto",
+  "grant_types": [ "authorization_code" , "refresh_token" ],
+  "response_types": [ "code" ],
+  "token_endpoint_auth_method": "none",
+  "application_type": "web",
+  "dpop_bound_access_tokens": true
+}
