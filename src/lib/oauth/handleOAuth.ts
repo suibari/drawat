@@ -1,3 +1,4 @@
+import { PUBLIC_WORKERS_URL, PUBLIC_OAUTH_CLIENT_BROWSER_KEY_NAME } from '$env/static/public';
 import { PUBLIC_URL } from '$env/static/public';
 import { browser } from '$app/environment';
 import { BrowserOAuthClient, OAuthSession } from '@atproto/oauth-client-browser';
@@ -16,10 +17,13 @@ if (browser) {
     clientMetadata: {
       client_id: PUBLIC_URL ?
         `${url}/client-metadata.json` :
-        `http://localhost?redirect_uri=${enc(`${url}/api/callback`)}&scope=${enc('atproto')}`,
+        `http://localhost?redirect_uri=${enc(`${url}/api/callback`)}&scope=${enc('atproto transition:generic')}`,
       redirect_uris: [`${url}/api/callback`],
-      scope: "atproto",
+      scope: "atproto transition:generic",
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
       token_endpoint_auth_method: "none",
+      dpop_bound_access_tokens: true,
     },
   });
 
@@ -48,4 +52,29 @@ export async function login(handle: string): Promise<void> {
     ui_locales: 'ja-JP',
   });
   window.location.href = authUrl;
+}
+
+/**
+ * OAuthコールバック、supabase登録
+ * @returns 
+ */
+export async function handleCallback(): Promise<void> {
+  if (!browser || client === null) return;
+
+  const did = localStorage.getItem(PUBLIC_OAUTH_CLIENT_BROWSER_KEY_NAME);
+
+  // 必要ならSupabaseにユーザー情報を保存
+  const response = await fetch(PUBLIC_WORKERS_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      did
+    }),
+  });
+
+  if (!response.ok) {
+    console.error('Failed to save user data to Supabase:', await response.json());
+  }
 }

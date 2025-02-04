@@ -1,16 +1,15 @@
 <script lang="ts">
+  import { PUBLIC_OAUTH_CLIENT_BROWSER_KEY_NAME } from '$env/static/public';
   import { login } from '../lib/oauth/handleOAuth';
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
-
-  const OAUTH_CLIENT_BROWSER_KEY_NAME = '@@atproto/oauth-client-browser(sub)';
 
   let handle = '';
   let did: string | null = null;
   const loginError = writable<string | null>(null);
 
   onMount(() => {
-    did = localStorage.getItem(OAUTH_CLIENT_BROWSER_KEY_NAME);
+    did = localStorage.getItem(PUBLIC_OAUTH_CLIENT_BROWSER_KEY_NAME);
   });
 </script>
 
