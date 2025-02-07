@@ -63,19 +63,13 @@
     }
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
   });
-
-  const resizeCanvas = () => {
-    const rect = canvas.parentElement?.getBoundingClientRect();
-    canvas.width = rect ? rect.width : 300;  // 親要素の幅を取得してキャンバスの幅に設定
-    canvas.height = rect ? rect.height : 150; // 親要素の高さを取得してキャンバスの高さに設定
-  };
 </script>
 
 <canvas
-  class="border-2 w-full h-full touch-none"
+  class="border-2 touch-none"
+  width="300"
+  height="600"
   bind:this={canvas}
   on:mousedown={startDrawing}
   on:mousemove={draw}
