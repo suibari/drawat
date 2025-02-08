@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { handleCallback } from '$lib/oauth/handleOAuth';
+  import { handleCallback } from '$lib/oauth';
   import { onMount } from 'svelte';
 
   onMount(async () => {

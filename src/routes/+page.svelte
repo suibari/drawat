@@ -1,19 +1,32 @@
 <script lang="ts">
   import Canvas from '$lib/components/Canvas.svelte';
-  import { login } from '../lib/oauth/handleOAuth';
+    import type { OAuthSession } from '@atproto/oauth-client-browser';
+  import { login, test } from '../lib/oauth';
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
 
   let handle = '';
+  let session: OAuthSession | null = null;
   let did: string | null = null;
   const drawingData = writable<{ x: number, y: number, color: string, size: number }[]>([]);
 
   onMount(() => {
-    did = localStorage.getItem('didLoggedIn');
+    const storedSession = localStorage.getItem('oauth_session');
+    if (storedSession) {
+      try {
+        session = JSON.parse(storedSession) as OAuthSession;
+        did = session.sub;
+      } catch (error) {
+        console.error("Failed to parse OAuth session:", error);
+      }
+    }
   });
 
-  const saveDrawingData = () => {
-    console.log($drawingData); // ここで描画データを送信
+  const saveDrawingData = async () => {
+    if (did) {
+      await test(did);
+      // console.log($drawingData); // ここで描画データを送信
+    }
   };
 </script>
 

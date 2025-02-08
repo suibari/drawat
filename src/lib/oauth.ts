@@ -2,27 +2,29 @@ import { PUBLIC_WORKERS_URL, PUBLIC_OAUTH_CLIENT_BROWSER_KEY_NAME } from '$env/s
 import { PUBLIC_URL } from '$env/static/public';
 import { browser } from '$app/environment';
 import { BrowserOAuthClient, OAuthSession } from '@atproto/oauth-client-browser';
+import { Agent } from '@atproto/api';
 import { openDB } from 'idb';
 
 const url = PUBLIC_URL || `http://127.0.0.1:5173`;
 const enc = encodeURIComponent;
 
 let client: BrowserOAuthClient | null = null;
+let session: OAuthSession | null = null;
 
 // ------------------
 // init
 // ------------------
-export async function initOAuthClient(): Promise<void> {
-  if (!browser || client !== null) return; // 既に初期化済みなら何もしない
+export async function initOAuthClient(): Promise<BrowserOAuthClient | null> {
+  if (!browser || client !== null) return null;
 
   client = new BrowserOAuthClient({
     handleResolver: 'https://bsky.social',
     clientMetadata: {
       client_id: PUBLIC_URL
         ? `${url}/client-metadata.json`
-        : `http://localhost?redirect_uri=${enc(`${url}/api/callback`)}&scope=${enc('atproto')}`,
+        : `http://localhost?redirect_uri=${enc(`${url}/api/callback`)}&scope=${enc('atproto transition:generic')}`,
       redirect_uris: [`${url}/api/callback`],
-      scope: "atproto",
+      scope: "atproto transition:generic",
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       token_endpoint_auth_method: "none",
@@ -32,11 +34,12 @@ export async function initOAuthClient(): Promise<void> {
 
   try {
     const result = await client.init();
-    if (result) {
-      console.log(`[INFO] OAuth session initialized: ${result.session.sub}`);
-    }
+    if (result) session = result?.session;
+    console.log(`[INFO] OAuth client initialized`);
+    return client;
   } catch (error) {
     console.error("OAuth client initialization failed:", error);
+    return null;
   }
 }
 
@@ -48,7 +51,7 @@ export async function initOAuthClient(): Promise<void> {
 export async function login(handle: string): Promise<void> {
   if (!browser || client === null) return;
 
-  localStorage.setItem('handle', handle);
+  sessionStorage.setItem('handle', handle);
 
   const authUrl: string = await client.signIn(handle, {
     prompt: 'consent',
@@ -62,12 +65,14 @@ export async function login(handle: string): Promise<void> {
  * @returns 
  */
 export async function handleCallback(): Promise<void> {
-  if (!browser) return;
+  if (!browser) return; // リダイレクトによりclientは消失しているはず
+
+  client = await initOAuthClient();
 
   const did = await getDIDFromIndexedDB();
-
-  if (did) {
-    localStorage.setItem('didLoggedIn', did);
+  if (did && client) {
+    session = await client.restore(did);
+    localStorage.setItem('oauth_session', JSON.stringify(session));
 
     // 必要ならSupabaseにユーザー情報を保存
     const response = await fetch(PUBLIC_WORKERS_URL, {
@@ -86,6 +91,16 @@ export async function handleCallback(): Promise<void> {
   }
 }
 
+export async function test(did: string) {
+  if (!browser || client === null) return;
+
+  if (session) {
+    const agent = new Agent(session);
+    const {data} = await agent.getProfile({actor: did});
+    console.log(data);
+  }
+}
+
 async function getDIDFromIndexedDB(): Promise<string | null> {
   try {
     // OAuthクライアントが保存するDBにアクセス
@@ -93,7 +108,7 @@ async function getDIDFromIndexedDB(): Promise<string | null> {
     const store = db.transaction('handleCache', 'readonly').objectStore('handleCache');
     
     // DIDを取得
-    const handle = localStorage.getItem('handle');
+    const handle = sessionStorage.getItem('handle');
     if (handle) {
       const record = await store.get(handle);
       return record?.value || null;

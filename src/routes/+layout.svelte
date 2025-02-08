@@ -1,12 +1,12 @@
 <script lang="ts">
 	import '../app.css';
-	let { children } = $props();
-
 	import { onMount } from "svelte";
-  import { initOAuthClient } from "$lib/oauth/handleOAuth";
+  import { initOAuthClient } from "$lib/oauth";
 
-  onMount(() => {
-    initOAuthClient();
+  let { children } = $props();
+
+  onMount(async () => {
+    await initOAuthClient();
   });
 </script>
 
