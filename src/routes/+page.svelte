@@ -3,13 +3,13 @@
   import type { OAuthSession } from '@atproto/oauth-client-browser';
   import { login } from '../lib/oauth';
   import { getRecordsVector, putRecordVector } from '$lib/drawat';
-  import { onMount } from 'svelte';
+  import { getContext, onMount } from 'svelte';
   import { writable } from 'svelte/store';
 
   let handle = '';
   let session: OAuthSession | null = null;
   let did: string | null = null;
-  const drawingData = writable<App.Path[]>([]);
+  const drawingData = getContext("drawingData") as ReturnType<typeof writable<App.Path[]>>;
 
   onMount(async () => {
     const storedSession = localStorage.getItem('oauth_session');
@@ -17,12 +17,6 @@
       try {
         session = JSON.parse(storedSession) as OAuthSession;
         did = session.sub;
-
-        // キャンバス開いたときにgetRecord
-        const paths = await getRecordsVector();
-        if (paths) {
-          drawingData.set(paths);
-        }
       } catch (error) {
         console.error("Failed to parse OAuth session:", error);
       }
