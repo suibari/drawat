@@ -1,5 +1,7 @@
 <script lang="ts">
-  export let drawingData: { x: number, y: number, color: string, size: number }[] = [];
+  import { onMount } from 'svelte';
+
+  export let drawingData: App.Path[] = [];
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
   let drawing = false;
@@ -53,7 +55,30 @@
     lastY = offsetY;
   };
 
-  import { onMount } from 'svelte';
+  // `drawingData` が変更されたときにキャンバスを描画し直す
+  $: if (drawingData) {
+    redrawCanvas();
+  }
+
+  const redrawCanvas = () => {
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // キャンバスをクリア
+
+    drawingData.forEach(({ x, y, color, size }, index) => {
+      if (index === 0) return;
+      const prev = drawingData[index - 1];
+
+      ctx.beginPath();
+      ctx.moveTo(prev.x, prev.y);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = size;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.closePath();
+    });
+  };
 
   onMount(() => {
     ctx = canvas.getContext('2d')!;
@@ -64,6 +89,8 @@
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
   });
+
+  redrawCanvas();
 </script>
 
 <canvas

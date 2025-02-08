@@ -2,14 +2,13 @@ import { PUBLIC_WORKERS_URL, PUBLIC_OAUTH_CLIENT_BROWSER_KEY_NAME } from '$env/s
 import { PUBLIC_URL } from '$env/static/public';
 import { browser } from '$app/environment';
 import { BrowserOAuthClient, OAuthSession } from '@atproto/oauth-client-browser';
-import { Agent } from '@atproto/api';
 import { openDB } from 'idb';
 
 const url = PUBLIC_URL || `http://127.0.0.1:5173`;
 const enc = encodeURIComponent;
 
 let client: BrowserOAuthClient | null = null;
-let session: OAuthSession | null = null;
+export let session: OAuthSession | null = null;
 
 // ------------------
 // init
@@ -88,16 +87,6 @@ export async function handleCallback(): Promise<void> {
     if (!response.ok) {
       console.error('Failed to save user data to Supabase:', await response.json());
     }
-  }
-}
-
-export async function test(did: string) {
-  if (!browser || client === null) return;
-
-  if (session) {
-    const agent = new Agent(session);
-    const {data} = await agent.getProfile({actor: did});
-    console.log(data);
   }
 }
 

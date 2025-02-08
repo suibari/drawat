@@ -1,21 +1,28 @@
 <script lang="ts">
   import Canvas from '$lib/components/Canvas.svelte';
-    import type { OAuthSession } from '@atproto/oauth-client-browser';
-  import { login, test } from '../lib/oauth';
+  import type { OAuthSession } from '@atproto/oauth-client-browser';
+  import { login } from '../lib/oauth';
+  import { getRecordsVector, putRecordVector } from '$lib/drawat';
   import { onMount } from 'svelte';
   import { writable } from 'svelte/store';
 
   let handle = '';
   let session: OAuthSession | null = null;
   let did: string | null = null;
-  const drawingData = writable<{ x: number, y: number, color: string, size: number }[]>([]);
+  const drawingData = writable<App.Path[]>([]);
 
-  onMount(() => {
+  onMount(async () => {
     const storedSession = localStorage.getItem('oauth_session');
     if (storedSession) {
       try {
         session = JSON.parse(storedSession) as OAuthSession;
         did = session.sub;
+
+        // キャンバス開いたときにgetRecord
+        const paths = await getRecordsVector();
+        if (paths) {
+          drawingData.set(paths);
+        }
       } catch (error) {
         console.error("Failed to parse OAuth session:", error);
       }
@@ -24,8 +31,11 @@
 
   const saveDrawingData = async () => {
     if (did) {
-      await test(did);
-      // console.log($drawingData); // ここで描画データを送信
+      await putRecordVector({did, paths: $drawingData});
+      const paths = await getRecordsVector();
+      if (paths) {
+        drawingData.set(paths);
+      }
     }
   };
 </script>

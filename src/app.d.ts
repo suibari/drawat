@@ -7,6 +7,20 @@ declare global {
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}
+
+		export interface RecordVector {
+			paths: Path[]
+			createdAt: string
+			[k: string]: unknown
+		}
+
+		export interface Path {
+			x: number
+			y: number
+			color: string
+			size: number
+			[k: string]: unknown
+		}
 	}
 }
 
