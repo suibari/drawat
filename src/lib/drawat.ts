@@ -40,8 +40,9 @@ export async function putRecordVector({
   }
 }
 
-export async function getRecordsVector(): Promise<App.Path[] | null> {
+export async function getRecordsVector(): Promise<{ paths: App.Path[]; dids: string[] } | null> {
   const result: App.Path[] = [];
+  let dids: string[] = [];
 
   try {
     // 全認証済みユーザのDID取得
@@ -52,8 +53,8 @@ export async function getRecordsVector(): Promise<App.Path[] | null> {
       },
     });
 
-    const data = await response.json() as {did: string, created_at: string}[];
-    const dids = data.map(d => d.did);
+    const data = await response.json() as { did: string; created_at: string }[];
+    dids = data.map(d => d.did);
 
     // didsの全てのblue.drawat.vectorのrecordを収集
     for (const did of dids) {
@@ -69,7 +70,7 @@ export async function getRecordsVector(): Promise<App.Path[] | null> {
     }
 
     console.log(`[INFO] successful got records, length: ${result.length}`);
-    return result;
+    return { paths: result, dids };
   } catch (error) {
     console.error("Failed to get records:", error);
     return null;

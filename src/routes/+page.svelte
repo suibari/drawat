@@ -5,11 +5,13 @@
   import { getRecordsVector, putRecordVector } from '$lib/drawat';
   import { getContext, onMount } from 'svelte';
   import { writable } from 'svelte/store';
+  import DidsList from '$lib/components/DidsList.svelte';
 
   let handle = '';
   let session: OAuthSession | null = null;
   let did: string | null = null;
   const drawingData = getContext("drawingData") as ReturnType<typeof writable<App.Path[]>>;
+  const dids = getContext("dids") as ReturnType<typeof writable<string[]>>;
 
   onMount(async () => {
     const storedSession = localStorage.getItem('oauth_session');
@@ -26,19 +28,27 @@
   const saveDrawingData = async () => {
     if (did) {
       await putRecordVector({did, paths: $drawingData});
-      const paths = await getRecordsVector();
-      if (paths) {
-        drawingData.set(paths);
+      const result = await getRecordsVector();
+      if (result) {
+        drawingData.set(result.paths);
       }
     }
   };
 </script>
 
 {#if did}
-  <p>ログイン成功: {did}</p>
-  <div class="w-full h-full p-4">
-    <Canvas drawingData={$drawingData} />
-    <button on:click={saveDrawingData}>post&reload</button>
+  <p class="font-semibold mb-1">ログイン成功: {did}</p>
+  <div class="flex flex-col md:flex-row items-start">
+    <div class="flex flex-col gap-2 mb-2">
+      <Canvas drawingData={$drawingData} />
+      <button
+        on:click={saveDrawingData}
+        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+      >
+        post & reload
+      </button>
+    </div>
+    <DidsList dids={$dids} />
   </div>
 {:else}
   <input type="text" bind:value={handle} placeholder="Bluesky ハンドル名" />

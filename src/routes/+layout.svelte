@@ -6,7 +6,10 @@
   import { writable } from 'svelte/store';
 
   const drawingData = writable<App.Path[]>([]);
+  const dids = writable<string[]>([]);
+
   setContext("drawingData", drawingData);
+  setContext("dids", dids);
 
   let { children } = $props();
 
@@ -15,9 +18,10 @@
 
     const storedSession = localStorage.getItem('oauth_session');
     if (storedSession) {
-      const paths = await getRecordsVector();
-      if (paths) {
-        drawingData.set(paths);
+      const result = await getRecordsVector();
+      if (result) {
+        drawingData.set(result.paths);
+        dids.set(result.dids);
       }
     }
   });
