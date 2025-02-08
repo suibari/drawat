@@ -1,25 +1,18 @@
-import { browser } from "$app/environment";
 import { PUBLIC_WORKERS_URL } from "$env/static/public";
-import { session } from "./oauth";
-import { Agent } from '@atproto/api';
+import { agent } from "./oauth";
 
-let agent: Agent | null = null;
 const collection = 'blue.drawat.vector';
 const rkey = 'self';
 
-if (session) {
-  agent = new Agent(session);
-}
+// export async function test(did: string) {
+//   if (!browser) return;
 
-export async function test(did: string) {
-  if (!browser) return;
-
-  if (session) {
-    const agent = new Agent(session);
-    const {data} = await agent.getProfile({actor: did});
-    console.log(data);
-  }
-}
+//   if (session) {
+//     const agent = new Agent(session);
+//     const {data} = await agent.getProfile({actor: did});
+//     console.log(data);
+//   }
+// }
 
 export async function putRecordVector({
   did,

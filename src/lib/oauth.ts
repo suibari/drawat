@@ -3,11 +3,13 @@ import { PUBLIC_URL } from '$env/static/public';
 import { browser } from '$app/environment';
 import { BrowserOAuthClient, OAuthSession } from '@atproto/oauth-client-browser';
 import { openDB } from 'idb';
+import { Agent } from '@atproto/api';
 
 const url = PUBLIC_URL || `http://127.0.0.1:5173`;
 const enc = encodeURIComponent;
 
 let client: BrowserOAuthClient | null = null;
+export let agent: Agent | null = null;
 export let session: OAuthSession | null = null;
 
 // ------------------
@@ -33,7 +35,10 @@ export async function initOAuthClient(): Promise<BrowserOAuthClient | null> {
 
   try {
     const result = await client.init();
-    if (result) session = result?.session;
+    if (result) {
+      session = result?.session;
+      agent = new Agent(session);
+    }
     console.log(`[INFO] OAuth client initialized`);
     return client;
   } catch (error) {
