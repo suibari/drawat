@@ -2,7 +2,7 @@
   import Canvas from '$lib/components/Canvas.svelte';
   import type { OAuthSession } from '@atproto/oauth-client-browser';
   import { login } from '../lib/oauth';
-  import { getRecordsVector, putRecordVector } from '$lib/drawat';
+  import { deleteRecordVector, getRecordsVector, putRecordVector } from '$lib/drawat';
   import { getContext, onMount } from 'svelte';
   import { writable } from 'svelte/store';
   import DidsList from '$lib/components/DidsList.svelte';
@@ -34,6 +34,16 @@
       }
     }
   };
+
+  const deleteDrawingData = async () => {
+    if (did) {
+      await deleteRecordVector(did);
+      const result = await getRecordsVector();
+      if (result) {
+        drawingData.set(result.paths);
+      }
+    }
+  };
 </script>
 
 {#if did}
@@ -46,12 +56,20 @@
 <div class="flex flex-col md:flex-row items-start">
   <div class="flex flex-col gap-2 mb-2">
     <Canvas drawingData={$drawingData} readonly={did ? false : true} />
-    <button
-      on:click={saveDrawingData}
-      class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-    >
-      post & reload
-    </button>
+    {#if  did}
+      <button
+        on:click={saveDrawingData}
+        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+      >
+        post & load drawing!
+      </button>
+      <button
+        on:click={deleteDrawingData}
+        class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+      >
+        delete my drawing
+      </button>
+    {/if}
   </div>
   <DidsList dids={$dids} />
 </div>

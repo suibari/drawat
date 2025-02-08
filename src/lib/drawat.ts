@@ -59,22 +59,41 @@ export async function getRecordsVector(): Promise<{ paths: App.Path[]; dids: str
 
     // didsの全てのblue.drawat.vectorのrecordを収集
     const agent = new AtpAgent({ service: 'https://bsky.social' });
+    
     for (const did of dids) {
-      const response = await agent.com.atproto.repo.getRecord({
-        repo: did,
-        collection,
-        rkey,
-      });
-      if (response) {
-        const value = response.data.value as App.RecordVector;
-        result.push(...value.paths);
+      try {
+        const response = await agent.com.atproto.repo.getRecord({
+          repo: did,
+          collection,
+          rkey,
+        });
+        if (response) {
+          const value = response.data.value as App.RecordVector;
+          result.push(...value.paths);
+        }
+      } catch (error) {
+        console.warn(`[WARN] Failed to get record for DID: ${did}, skipping...`, error);
+        continue; // エラーを無視して次のdidへ
       }
     }
 
-    console.log(`[INFO] successful got records, length: ${result.length}`);
+    console.log(`[INFO] Successfully got records, length: ${result.length}`);
     return { paths: result, dids };
   } catch (error) {
     console.error("Failed to get records:", error);
     return null;
+  }
+}
+
+export async function deleteRecordVector(did: string): Promise<void> {
+  try {
+    await agent?.com.atproto.repo.deleteRecord({
+      repo: did,
+      collection,
+      rkey,
+    });
+    console.log(`[INFO] successful delete record`);
+  } catch (error) {
+    console.error("Failed to delete record:", error);
   }
 }
