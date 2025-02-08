@@ -26,7 +26,8 @@
         "x": { "type": "integer" },
         "y": { "type": "integer" },
         "color": { "type": "string" },
-        "size": { "type": "integer" }
+        "size": { "type": "integer" },
+        "isNewStroke": { "type": "boolean" }
       },
       "required": ["x", "y", "color", "size"]
     }

@@ -19,6 +19,7 @@ declare global {
 			y: number
 			color: string
 			size: number
+			isNewStroke: boolean
 			[k: string]: unknown
 		}
 	}

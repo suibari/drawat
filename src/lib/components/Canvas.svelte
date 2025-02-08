@@ -12,15 +12,22 @@
 
   const startDrawing = (e: MouseEvent | TouchEvent) => {
     drawing = true;
+    let offsetX: number = 0;
+    let offsetY: number = 0;
+
     if (e instanceof MouseEvent) {
-      const { offsetX, offsetY } = e;
-      lastX = offsetX;
-      lastY = offsetY;
+      offsetX = e.offsetX;
+      offsetY = e.offsetY;
     } else if (e instanceof TouchEvent) {
-      const { clientX, clientY } = e.touches[0];
-      lastX = clientX - canvas.offsetLeft;
-      lastY = clientY - canvas.offsetTop;
+      offsetX = e.touches[0].clientX - canvas.offsetLeft;
+      offsetY = e.touches[0].clientY - canvas.offsetTop;
     }
+
+    lastX = offsetX;
+    lastY = offsetY;
+
+    // 新しいストロークの開始
+    drawingData.push({ x: offsetX, y: offsetY, color: currentColor, size: currentSize, isNewStroke: true });
   };
 
   const stopDrawing = () => {
@@ -49,7 +56,7 @@
     ctx.stroke();
     ctx.closePath();
 
-    drawingData.push({ x: offsetX, y: offsetY, color: currentColor, size: currentSize });
+    drawingData.push({ x: offsetX, y: offsetY, color: currentColor, size: currentSize, isNewStroke: false });
 
     lastX = offsetX;
     lastY = offsetY;
@@ -65,18 +72,19 @@
 
     ctx.clearRect(0, 0, canvas.width, canvas.height); // キャンバスをクリア
 
-    drawingData.forEach(({ x, y, color, size }, index) => {
-      if (index === 0) return;
-      const prev = drawingData[index - 1];
+    drawingData.forEach(({ x, y, color, size, isNewStroke }, index) => {
+      if (index === 0 || isNewStroke) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+      } else {
+        const prev = drawingData[index - 1];
+        ctx.lineTo(x, y);
+      }
 
-      ctx.beginPath();
-      ctx.moveTo(prev.x, prev.y);
-      ctx.lineTo(x, y);
       ctx.strokeStyle = color;
       ctx.lineWidth = size;
       ctx.lineCap = 'round';
       ctx.stroke();
-      ctx.closePath();
     });
   };
 
