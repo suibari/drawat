@@ -64,7 +64,6 @@ export async function getRecordsVector(): Promise<App.Path[] | null> {
       });
       if (response) {
         const value = response.data.value as App.RecordVector;
-        console.log(value)
         result.push(...value.paths);
       }
     }
