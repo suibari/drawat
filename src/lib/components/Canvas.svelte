@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
 
   export let drawingData: App.Path[] = [];
+  export let readonly: boolean = false;
+
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
   let drawing = false;
@@ -35,7 +37,7 @@
   };
 
   const draw = (e: MouseEvent | TouchEvent) => {
-    if (!drawing) return;
+    if (!drawing || readonly) return;
     let offsetX: number = 0;
     let offsetY: number = 0;
 

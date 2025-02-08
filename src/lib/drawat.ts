@@ -1,5 +1,6 @@
 import { PUBLIC_WORKERS_URL } from "$env/static/public";
 import { agent } from "./oauth";
+import { AtpAgent } from '@atproto/api';
 
 const collection = 'blue.drawat.vector';
 const rkey = 'self';
@@ -57,8 +58,9 @@ export async function getRecordsVector(): Promise<{ paths: App.Path[]; dids: str
     dids = data.map(d => d.did);
 
     // didsの全てのblue.drawat.vectorのrecordを収集
+    const agent = new AtpAgent({ service: 'https://bsky.social' });
     for (const did of dids) {
-      const response = await agent?.com.atproto.repo.getRecord({
+      const response = await agent.com.atproto.repo.getRecord({
         repo: did,
         collection,
         rkey,

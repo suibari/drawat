@@ -38,19 +38,20 @@
 
 {#if did}
   <p class="font-semibold mb-1">ログイン成功: {did}</p>
-  <div class="flex flex-col md:flex-row items-start">
-    <div class="flex flex-col gap-2 mb-2">
-      <Canvas drawingData={$drawingData} />
-      <button
-        on:click={saveDrawingData}
-        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-      >
-        post & reload
-      </button>
-    </div>
-    <DidsList dids={$dids} />
-  </div>
 {:else}
   <input type="text" bind:value={handle} placeholder="Bluesky ハンドル名" />
   <button on:click={() => login(handle)}>Blueskyでログイン</button>
 {/if}
+
+<div class="flex flex-col md:flex-row items-start">
+  <div class="flex flex-col gap-2 mb-2">
+    <Canvas drawingData={$drawingData} readonly={did ? false : true} />
+    <button
+      on:click={saveDrawingData}
+      class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+    >
+      post & reload
+    </button>
+  </div>
+  <DidsList dids={$dids} />
+</div>

@@ -16,13 +16,10 @@
   onMount(async () => {
     await initOAuthClient();
 
-    const storedSession = localStorage.getItem('oauth_session');
-    if (storedSession) {
-      const result = await getRecordsVector();
-      if (result) {
-        drawingData.set(result.paths);
-        dids.set(result.dids);
-      }
+    const result = await getRecordsVector();
+    if (result) {
+      drawingData.set(result.paths);
+      dids.set(result.dids);
     }
   });
 </script>
