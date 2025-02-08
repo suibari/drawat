@@ -5,7 +5,7 @@
   "logo_uri": "https://drawat.suibari.com/ogp.png" ,
   "policy_uri": "https://drawat.suibari.com" ,
   "redirect_uris": ["https://drawat.suibari.com/api/callback"],
-  "scope": "atproto",
+  "scope": "atproto transition:generic",
   "grant_types": ["authorization_code" , "refresh_token"],
   "response_types": ["code"],
   "token_endpoint_auth_method": "none",
