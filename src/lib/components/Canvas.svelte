@@ -106,7 +106,7 @@
 <canvas
   class="border-2 touch-none"
   width="300"
-  height="600"
+  height="500"
   bind:this={canvas}
   on:mousedown={startDrawing}
   on:mousemove={draw}

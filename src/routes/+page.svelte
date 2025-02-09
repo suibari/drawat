@@ -59,7 +59,7 @@
       />
       <button
         on:click={() => login(handle)}
-        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+        class="px-4 py-2 bg-sky-400 text-white rounded-lg hover:bg-sky-500 transition"
       >
         Log-in
       </button>
