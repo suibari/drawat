@@ -6,11 +6,13 @@
   import { writable } from 'svelte/store';
   import { Navbar, NavBrand, NavLi, NavUl, NavHamburger } from 'flowbite-svelte';
   import Footer from '$lib/components/Footer.svelte';
-    import Spinner from '$lib/components/Spinner.svelte';
+  import Spinner from '$lib/components/Spinner.svelte';
+    import About from '$lib/components/About.svelte';
 
   const drawingData = writable<App.Path[]>([]);
   const dids = writable<string[]>([]);
   let isLoading = $state(false);
+  let aboutModal = $state(false);
 
   setContext("drawingData", drawingData);
   setContext("dids", dids);
@@ -34,11 +36,11 @@
 
 <Navbar class="bg-primary text-gray-900">
   <NavBrand>
-    <span class="pacifico text-2xl ml-2">DrawAt</span>
+    <span class="pacifico text-gray-900 text-2xl ml-2">DrawAt</span>
   </NavBrand>
   <NavHamburger />
   <NavUl>
-    <NavLi>About</NavLi>
+    <NavLi class="cursor-pointer" on:click={() => aboutModal = true}>About</NavLi>
   </NavUl>
 </Navbar>
 
@@ -49,5 +51,7 @@
 {#if isLoading}
   <Spinner text="Getting Records..."/>
 {/if}
+
+<About bind:aboutModal />
 
 <Footer />

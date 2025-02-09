@@ -7,6 +7,10 @@ html {
   background-attachment: fixed; /* 背景を固定 */
 }
 
+a {
+  color: #3994C1;
+}
+
 .pacifico {
   font-family: "Pacifico", serif;
   font-weight: 400;
