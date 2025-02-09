@@ -53,16 +53,17 @@
 
   const handleLogout = async () => {
     isLoggingOut = true;
+
     await logout($did);
+
+    // UIを未ログイン状態に
+    did.set("");
 
     // 画像削除されたことをユーザに見せる
     const result = await getRecordsVector();
     if (result) {
       drawingData.set(result.paths);
     }
-
-    // UIを未ログイン状態に
-    did.set("");
 
     isLoggingOut = false;
   }
@@ -89,6 +90,8 @@
 
 {#if isLoading}
   <Spinner text="Getting Records..."/>
+{:else if isLoggingOut}
+  <Spinner text="Logging-out..."/>
 {/if}
 
 <About bind:aboutModal />
