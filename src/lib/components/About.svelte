@@ -3,7 +3,7 @@
   export let aboutModal = false;
 </script>
 
-<Modal title="About DrawAt!" bind:open={aboutModal} autoclose outsideclose>
+<Modal title="About DrawAt!" bind:open={aboutModal} autoclose outsideclose class="max-h-[95vh] overflow-auto">
   <div class="space-y-2">
     <p><b>DrawAt</b>は、AT Protocolを利用したお絵描きチャットです。</p>
     <p>お絵描きにあたってはBlueskyのアカウントによる認証が必要です。</p>

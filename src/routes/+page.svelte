@@ -6,7 +6,7 @@
   import { getContext, onMount } from 'svelte';
   import { writable } from 'svelte/store';
   import DidsList from '$lib/components/DidsList.svelte';
-    import Spinner from '$lib/components/Spinner.svelte';
+  import Spinner from '$lib/components/Spinner.svelte';
 
   let handle:string = $state("");
   let session: OAuthSession | null = null;
@@ -88,13 +88,13 @@
     {#if did}
       <button
         onclick={saveDrawingData}
-        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+        class="px-4 py-2 bg-sky-400 text-white rounded-lg hover:bg-sky-500 transition"
       >
         post & load!
       </button>
       <button
         onclick={deleteDrawingData}
-        class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+        class="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition"
       >
         delete my drawing
       </button>
