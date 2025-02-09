@@ -72,29 +72,36 @@ export async function login(handle: string): Promise<void> {
  * @returns 
  */
 export async function logout(did: string): Promise<void> {
-  if (!browser || client === null) return;
+  if (!browser) return;
 
-  // tokenを破棄
-  await client.revoke(did);
+  try {
+    // tokenを破棄
+    client = await initOAuthClient();
+    if (client) {
+      await client.revoke(did);
+    }
 
-  // session情報を破棄
-  localStorage.removeItem('oauth_session');
+    // session情報を破棄
+    localStorage.removeItem('oauth_session');
 
-  // お絵描き情報を削除
-  await deleteRecordVector(did);
+    // お絵描き情報を削除
+    await deleteRecordVector(did);
 
-  // supabase削除
-  const response = await fetch(PUBLIC_WORKERS_URL, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      did
-    }),
-  });
+    // supabase削除
+    const response = await fetch(PUBLIC_WORKERS_URL, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        did
+      }),
+    });
 
-  console.log(`[INFO] successful log-out`);
+    console.log(`[INFO] successful log-out`);
+  } catch (error) {
+    console.error(`failed to log-out: ${error}`)
+  }
 }
 
 /**

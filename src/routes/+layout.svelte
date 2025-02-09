@@ -51,9 +51,19 @@
     isLoading = false;
   });
 
-  const handleLogout = async (did: string) => {
+  const handleLogout = async () => {
     isLoggingOut = true;
-    await logout(did);
+    await logout($did);
+
+    // 画像削除されたことをユーザに見せる
+    const result = await getRecordsVector();
+    if (result) {
+      drawingData.set(result.paths);
+    }
+
+    // UIを未ログイン状態に
+    did.set("");
+
     isLoggingOut = false;
   }
 </script>
@@ -65,7 +75,7 @@
   <NavHamburger />
   <NavUl>
     {#if $did}
-      <NavLi class="cursor-pointer" on:click={() => handleLogout($did)}>Log-out</NavLi>
+      <NavLi class="cursor-pointer" on:click={() => handleLogout()}>Log-out</NavLi>
     {:else}
       <NavLi class="cursor-pointer" on:click={() => loginModal = true}>Log-in</NavLi>
     {/if}
