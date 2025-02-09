@@ -46,14 +46,28 @@
   };
 </script>
 
-{#if did}
-  <p class="font-semibold mb-1">ログイン成功: {did}</p>
-{:else}
-  <input type="text" bind:value={handle} placeholder="Bluesky ハンドル名" />
-  <button on:click={() => login(handle)}>Blueskyでログイン</button>
-{/if}
+<div class="flex justify-center mb-2">
+  {#if did}
+    <p class="font-semibold">Logged-in "{did}"</p>
+  {:else}
+    <div class="flex gap-2">
+      <input
+        type="text"
+        bind:value={handle}
+        placeholder="your-handle.bsky.social"
+        class="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+      <button
+        on:click={() => login(handle)}
+        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+      >
+        Log-in
+      </button>
+    </div>
+  {/if}
+</div>
 
-<div class="flex flex-col md:flex-row items-start">
+<div class="flex flex-col md:flex-row items-center justify-center">
   <div class="flex flex-col gap-2 mb-2">
     <Canvas drawingData={$drawingData} readonly={did ? false : true} />
     {#if  did}
@@ -71,5 +85,7 @@
       </button>
     {/if}
   </div>
-  <DidsList dids={$dids} />
+  <div class="flex sm:self-start">
+    <DidsList dids={$dids} />
+  </div>
 </div>
