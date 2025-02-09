@@ -1,4 +1,4 @@
-import { PUBLIC_WORKERS_URL, PUBLIC_OAUTH_CLIENT_BROWSER_KEY_NAME } from '$env/static/public';
+import { PUBLIC_WORKERS_URL, PUBLIC_NODE_ENV } from '$env/static/public';
 import { PUBLIC_URL } from '$env/static/public';
 import { browser } from '$app/environment';
 import { BrowserOAuthClient, OAuthSession } from '@atproto/oauth-client-browser';
@@ -22,9 +22,10 @@ export async function initOAuthClient(): Promise<BrowserOAuthClient | null> {
   client = new BrowserOAuthClient({
     handleResolver: 'https://bsky.social',
     clientMetadata: {
-      client_id: PUBLIC_URL
-        ? `${url}/client-metadata.json`
-        : `http://localhost?redirect_uri=${enc(`${url}/api/callback`)}&scope=${enc('atproto transition:generic')}`,
+      client_id:
+        PUBLIC_NODE_ENV === "production" ? `${url}/client-metadata.json` :
+        PUBLIC_NODE_ENV === "preview" ? `${url}/client-metadata-preview.json` :
+        `http://localhost?redirect_uri=${enc(`${url}/api/callback`)}&scope=${enc('atproto transition:generic')}`,
       redirect_uris: [`${url}/api/callback`],
       scope: "atproto transition:generic",
       grant_types: ["authorization_code", "refresh_token"],
