@@ -20,6 +20,7 @@ declare global {
 			color: string
 			size: number
 			isNewStroke: boolean
+			author: string
 			[k: string]: unknown
 		}
 	}

@@ -27,7 +27,8 @@
         "y": { "type": "integer" },
         "color": { "type": "string" },
         "size": { "type": "integer" },
-        "isNewStroke": { "type": "boolean" }
+        "isNewStroke": { "type": "boolean" },
+        "author": { "type": "string" }
       },
       "required": ["x", "y", "color", "size"]
     }

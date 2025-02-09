@@ -3,6 +3,7 @@
 
   export let drawingData: App.Path[] = [];
   export let readonly: boolean = false;
+  export let userDid: string | null = null;
 
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
@@ -12,7 +13,26 @@
   let currentColor = 'black';
   let currentSize = 5;
 
+  /**
+   * リロードのたびにランダムカラー設定
+   */
+  function generateRandomDarkColor(): string {
+    const hue = Math.floor(Math.random() * 360); // 0〜360° (全色)
+    const saturation = Math.floor(Math.random() * 31) + 70; // 70〜100% (鮮やか)
+    const lightness = Math.floor(Math.random() * 31) + 20; // 20〜50% (ある程度濃い色)
+
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  }
+
+  onMount(() => {
+    currentColor = generateRandomDarkColor();
+  });
+
+  /**
+   * ストローク時にCanvasに描画
+   */
   const startDrawing = (e: MouseEvent | TouchEvent) => {
+    if (!userDid) return;
     drawing = true;
     let offsetX: number = 0;
     let offsetY: number = 0;
@@ -28,8 +48,7 @@
     lastX = offsetX;
     lastY = offsetY;
 
-    // 新しいストロークの開始
-    drawingData.push({ x: offsetX, y: offsetY, color: currentColor, size: currentSize, isNewStroke: true });
+    drawingData.push({ x: offsetX, y: offsetY, color: currentColor, size: currentSize, isNewStroke: true, author: userDid });
   };
 
   const stopDrawing = () => {
@@ -37,7 +56,7 @@
   };
 
   const draw = (e: MouseEvent | TouchEvent) => {
-    if (!drawing || readonly) return;
+    if (!drawing || readonly || !userDid) return;
     let offsetX: number = 0;
     let offsetY: number = 0;
 
@@ -58,13 +77,15 @@
     ctx.stroke();
     ctx.closePath();
 
-    drawingData.push({ x: offsetX, y: offsetY, color: currentColor, size: currentSize, isNewStroke: false });
+    drawingData.push({ x: offsetX, y: offsetY, color: currentColor, size: currentSize, isNewStroke: false, author: userDid });
 
     lastX = offsetX;
     lastY = offsetY;
   };
 
-  // `drawingData` が変更されたときにキャンバスを描画し直す
+  /**
+   * drawingDataの描画実行
+   */
   $: if (drawingData) {
     redrawCanvas();
   }
@@ -72,7 +93,7 @@
   const redrawCanvas = () => {
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // キャンバスをクリア
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     drawingData.forEach(({ x, y, color, size, isNewStroke }, index) => {
       if (index === 0 || isNewStroke) {

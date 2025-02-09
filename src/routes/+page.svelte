@@ -27,7 +27,7 @@
 
   const saveDrawingData = async () => {
     if (did) {
-      await putRecordVector({did, paths: $drawingData});
+      await putRecordVector({did, paths: $drawingData.filter(path => path.author === did)});
       const result = await getRecordsVector();
       if (result) {
         drawingData.set(result.paths);
@@ -69,8 +69,8 @@
 
 <div class="flex flex-col md:flex-row items-center justify-center">
   <div class="flex flex-col gap-2 mb-2">
-    <Canvas drawingData={$drawingData} readonly={did ? false : true} />
-    {#if  did}
+    <Canvas drawingData={$drawingData} readonly={did ? false : true} userDid={did} />
+    {#if did}
       <button
         on:click={saveDrawingData}
         class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
