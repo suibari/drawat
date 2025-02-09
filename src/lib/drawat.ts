@@ -44,6 +44,7 @@ export async function putRecordVector({
 export async function getRecordsVector(): Promise<{ paths: App.Path[]; dids: string[] } | null> {
   const result: App.Path[] = [];
   let dids: string[] = [];
+  const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000; // 1週間前のタイムスタンプ
 
   try {
     // 全認証済みユーザのDID取得
@@ -69,7 +70,13 @@ export async function getRecordsVector(): Promise<{ paths: App.Path[]; dids: str
         });
         if (response) {
           const value = response.data.value as App.RecordVector;
-          result.push(...value.paths);
+          const createdAt = new Date(value.createdAt).getTime();
+
+          if (createdAt >= oneWeekAgo) {
+            result.push(...value.paths);
+          } else {
+            console.log(`[INFO] Skipped old record for DID: ${did}`);
+          }
         }
       } catch (error) {
         console.warn(`[WARN] Failed to get record for DID: ${did}, skipping...`, error);

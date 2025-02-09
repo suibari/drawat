@@ -3,7 +3,7 @@
 </script>
 
 <div class="flex-col lg:ml-2">
-  <p class="font-semibold">DrawAt Drawers!</p>
+  <p class="font-semibold">Drawers:</p>
   <ul class="flex flex-col gap-2">
     {#each dids as did}
       <li>
