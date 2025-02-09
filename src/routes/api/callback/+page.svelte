@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Spinner from '$lib/components/Spinner.svelte';
   import { handleCallback } from '$lib/oauth';
   import { onMount } from 'svelte';
 
@@ -8,4 +9,4 @@
   });
 </script>
 
-<p>ログイン処理中...</p>
+<Spinner text="Login processing..." />
