@@ -4,6 +4,7 @@ import { browser } from '$app/environment';
 import { BrowserOAuthClient, OAuthSession } from '@atproto/oauth-client-browser';
 import { openDB } from 'idb';
 import { Agent } from '@atproto/api';
+import { deleteRecordVector } from './drawat';
 
 const url = PUBLIC_URL || `http://127.0.0.1:5173`;
 const enc = encodeURIComponent;
@@ -62,6 +63,35 @@ export async function login(handle: string): Promise<void> {
     ui_locales: 'ja-JP',
   });
   window.location.href = authUrl;
+}
+
+/**
+ * OAuthログアウト
+ * @param did
+ * @returns 
+ */
+export async function logout(did: string): Promise<void> {
+  if (!browser || client === null) return;
+
+  // tokenを破棄
+  await client.revoke(did);
+
+  // session情報を破棄
+  localStorage.removeItem('oauth_session');
+
+  // お絵描き情報を削除
+  await deleteRecordVector(did);
+
+  // supabase削除
+  const response = await fetch(PUBLIC_WORKERS_URL, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      did
+    }),
+  });
 }
 
 /**
