@@ -1,13 +1,10 @@
 <script lang="ts">
   import Canvas from '$lib/components/Canvas.svelte';
-  import { login, logout } from '../lib/oauth';
   import { deleteRecordVector, getRecordsVector, putRecordVector } from '$lib/drawat';
   import { getContext, onMount } from 'svelte';
   import { writable } from 'svelte/store';
   import DidsList from '$lib/components/DidsList.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
-
-  let handle: string = $state("");
 
   const drawingData = getContext("drawingData") as ReturnType<typeof writable<App.Path[]>>;
   const dids = getContext("dids") as ReturnType<typeof writable<string[]>>;
@@ -15,7 +12,6 @@
 
   let isPostAndLoading = $state(false);
   let isDeleteing = $state(false);
-  let isLoggingOut = $state(false);
 
   const saveDrawingData = async () => {
     if ($did) {

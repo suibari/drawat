@@ -93,6 +93,8 @@ export async function logout(did: string): Promise<void> {
       did
     }),
   });
+
+  console.log(`[INFO] successful log-out`);
 }
 
 /**

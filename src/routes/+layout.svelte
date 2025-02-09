@@ -65,7 +65,7 @@
   <NavHamburger />
   <NavUl>
     {#if $did}
-      <NavLi class="cursor-pointer" on:click={async () => handleLogout($did)}>Log-out</NavLi>
+      <NavLi class="cursor-pointer" on:click={() => handleLogout($did)}>Log-out</NavLi>
     {:else}
       <NavLi class="cursor-pointer" on:click={() => loginModal = true}>Log-in</NavLi>
     {/if}
