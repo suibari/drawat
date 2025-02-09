@@ -4,7 +4,7 @@
 
 <div class="flex-col lg:ml-2">
   <p class="font-semibold">Drawers:</p>
-  <ul class="flex flex-col gap-2 max-h-60 overflow-y-auto">
+  <ul class="flex flex-col gap-2 max-h-full overflow-y-auto">
     {#each dids as did}
       <li>
         <a
