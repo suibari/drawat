@@ -8,7 +8,7 @@ if (PUBLIC_NODE_ENV === "development") {
   headers['Authorization'] = `Bearer ${PUBLIC_LOCAL_API_KEY}`;
 }
 
-export const getAllRows = async (): Promise<string[]> => {
+export const getAllRows = async (): Promise<App.dbVector[]> => {
   let dids: string[] = [];
 
   const response = await fetch(PUBLIC_WORKERS_URL, {
@@ -20,19 +20,28 @@ export const getAllRows = async (): Promise<string[]> => {
     console.error('Failed to delete user data from Supabase:', await response.json());
     return [];
   } else {
-    const data = await response.json() as { did: string; created_at: string }[];
-    dids = data.map(d => d.did);
-  
-    return dids;
+    const data = await response.json() as App.dbVector[];
+
+    return data;
   }
 }
 
-export const postRow = async (did: string) => {
+export const postRow = async ({
+  did,
+  vector,
+  updated_at
+}: {
+  did: string,
+  vector: App.Path[] | null,
+  updated_at: string
+}) => {
   const response = await fetch(PUBLIC_WORKERS_URL, {
     method: 'POST',
     headers,
     body: JSON.stringify({
-      did
+      did,
+      vector,
+      updated_at,
     }),
   });
 

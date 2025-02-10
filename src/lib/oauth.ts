@@ -26,7 +26,7 @@ export async function initOAuthClient(): Promise<BrowserOAuthClient | null> {
       client_id:
         PUBLIC_NODE_ENV === "production" ? `${url}/client-metadata.json` :
         PUBLIC_NODE_ENV === "preview" ? `${url}/client-metadata-preview.json` :
-        `http://localhost?redirect_uri=${enc(`${url}/api/callback`)}&scope=${enc('atproto')}`,
+        `http://localhost?redirect_uri=${enc(`${url}/api/callback`)}&scope=${enc('atproto transition:generic')}`,
       redirect_uris: [`${url}/api/callback`],
       scope: "atproto transition:generic",
       grant_types: ["authorization_code", "refresh_token"],
@@ -111,7 +111,11 @@ export async function handleCallback(): Promise<void> {
     session = await client.restore(did);
     localStorage.setItem('oauth_session', JSON.stringify(session));
 
-    await postRow(did);
+    await postRow({
+      did,
+      vector: null,
+      updated_at: new Date().toISOString(),
+    });
   }
 }
 

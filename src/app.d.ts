@@ -23,6 +23,13 @@ declare global {
 			author: string
 			[k: string]: unknown
 		}
+
+		export interface dbVector {
+			did: string
+			vector: Path[]
+			created_at: string
+			updated_at: string
+		}
 	}
 }
 
