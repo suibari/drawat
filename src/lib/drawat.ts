@@ -1,6 +1,6 @@
 import { agent } from "./oauth";
 import { AtpAgent } from '@atproto/api';
-import { getAllRows, postRow } from "./supabase";
+import { deleteRow, getAllRows, postRow } from "./supabase";
 
 const collection = 'blue.drawat.vector';
 const rkey = 'self';
@@ -72,6 +72,9 @@ export async function deleteRecordVector(did: string): Promise<void> {
       collection,
       rkey,
     });
+
+    // supabase削除
+    await deleteRow(did);
     console.log(`[INFO] successful delete record`);
   } catch (error) {
     console.error("Failed to delete record:", error);
