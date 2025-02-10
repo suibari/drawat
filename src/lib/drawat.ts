@@ -1,6 +1,7 @@
 import { PUBLIC_WORKERS_URL } from "$env/static/public";
 import { agent } from "./oauth";
 import { AtpAgent } from '@atproto/api';
+import { getAllRows } from "./supabase";
 
 const collection = 'blue.drawat.vector';
 const rkey = 'self';
@@ -48,15 +49,7 @@ export async function getRecordsVector(): Promise<{ paths: App.Path[]; dids: str
 
   try {
     // 全認証済みユーザのDID取得
-    const response = await fetch(PUBLIC_WORKERS_URL, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const data = await response.json() as { did: string; created_at: string }[];
-    dids = data.map(d => d.did);
+    const dids = await getAllRows();
 
     // didsの全てのblue.drawat.vectorのrecordを収集
     const agent = new AtpAgent({ service: 'https://bsky.social' });
