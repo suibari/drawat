@@ -14,9 +14,9 @@
   const drawingData = writable<App.Path[]>([]);
   const dids = writable<string[]>([]);
   const did = writable<string>();
+  const isLoading = writable<boolean>(true);
 
   let session: OAuthSession | null = $state(null);
-  let isLoading = $state(false);
   let isLoggingOut = $state(false);
   let aboutModal = $state(false);
   let loginModal = $state(false);
@@ -24,20 +24,23 @@
   setContext("drawingData", drawingData);
   setContext("dids", dids);
   setContext("did", did);
+  setContext("isLoading", isLoading)
 
   let { children } = $props();
 
   onMount(async () => {
-    isLoading = true;
+    isLoading.set(true);
 
     await initOAuthClient();
 
+    // Canvas描画
     const result = await getRecordsVector();
     if (result) {
       drawingData.set(result.paths);
       dids.set(result.dids);
     }
 
+    // ログイン情報保存
     const storedSession = localStorage.getItem('oauth_session');
     if (storedSession) {
       try {
@@ -48,7 +51,7 @@
       }
     }
 
-    isLoading = false;
+    isLoading.set(false);
   });
 
   const handleLogout = async () => {
@@ -88,7 +91,7 @@
   {@render children()}
 </div>
 
-{#if isLoading}
+{#if $isLoading}
   <Spinner text="Getting Records..."/>
 {:else if isLoggingOut}
   <Spinner text="Logging-out..."/>

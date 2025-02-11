@@ -1,140 +1,176 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, afterUpdate, beforeUpdate } from "svelte";
+  import * as fabric from "fabric";
+    import type { Facet } from "@atproto/api";
 
   export let drawingData: App.Path[] = [];
   export let readonly: boolean = false;
-  export let userDid: string | null = null;
+  export const userDid: string | null = null;
 
-  let canvas: HTMLCanvasElement;
-  let ctx: CanvasRenderingContext2D;
-  let drawing = false;
-  let lastX = 0;
-  let lastY = 0;
-  let currentColor = 'black';
+  let canvas: fabric.Canvas;
+  let undoStack: any[] = [];
+  let redoStack: any[] = [];
+  let currentColor = "#000000";
   let currentSize = 5;
+  let isErasing = false;
+  let initialState: any = null; // 初期データの状態を保存
 
   /**
-   * リロードのたびにランダムカラー設定
+   * 初回マウント時の処理
    */
-  function generateRandomDarkColor(): string {
-    const hue = Math.floor(Math.random() * 360); // 0〜360° (全色)
-    const saturation = Math.floor(Math.random() * 31) + 70; // 70〜100% (鮮やか)
-    const lightness = Math.floor(Math.random() * 31) + 20; // 20〜50% (ある程度濃い色)
-
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  }
-
   onMount(() => {
-    currentColor = generateRandomDarkColor();
-  });
-
-  /**
-   * ストローク時にCanvasに描画
-   */
-  const startDrawing = (e: MouseEvent | TouchEvent) => {
-    if (!userDid) return;
-    drawing = true;
-    let offsetX: number = 0;
-    let offsetY: number = 0;
-
-    if (e instanceof MouseEvent) {
-      offsetX = e.offsetX;
-      offsetY = e.offsetY;
-    } else if (e instanceof TouchEvent) {
-      offsetX = e.touches[0].clientX - canvas.offsetLeft;
-      offsetY = e.touches[0].clientY - canvas.offsetTop;
-    }
-
-    lastX = offsetX;
-    lastY = offsetY;
-
-    drawingData.push({ x: offsetX, y: offsetY, color: currentColor, size: currentSize, isNewStroke: true, author: userDid });
-  };
-
-  const stopDrawing = () => {
-    drawing = false;
-  };
-
-  const draw = (e: MouseEvent | TouchEvent) => {
-    if (!drawing || readonly || !userDid) return;
-    let offsetX: number = 0;
-    let offsetY: number = 0;
-
-    if (e instanceof MouseEvent) {
-      offsetX = e.offsetX;
-      offsetY = e.offsetY;
-    } else if (e instanceof TouchEvent) {
-      offsetX = e.touches[0].clientX - canvas.offsetLeft;
-      offsetY = e.touches[0].clientY - canvas.offsetTop;
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(offsetX, offsetY);
-    ctx.strokeStyle = currentColor;
-    ctx.lineWidth = currentSize;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    ctx.closePath();
-
-    drawingData.push({ x: offsetX, y: offsetY, color: currentColor, size: currentSize, isNewStroke: false, author: userDid });
-
-    lastX = offsetX;
-    lastY = offsetY;
-  };
-
-  /**
-   * drawingDataの描画実行
-   */
-  $: if (drawingData) {
-    redrawCanvas();
-  }
-
-  const redrawCanvas = () => {
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    drawingData.forEach(({ x, y, color, size, isNewStroke }, index) => {
-      if (index === 0 || isNewStroke) {
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-      } else {
-        const prev = drawingData[index - 1];
-        ctx.lineTo(x, y);
-      }
-
-      ctx.strokeStyle = color;
-      ctx.lineWidth = size;
-      ctx.lineCap = 'round';
-      ctx.stroke();
+    canvas = new fabric.Canvas("drawingCanvas", {
+      isDrawingMode: !readonly, // readonlyなら描画モードをオフ
     });
-  };
 
-  onMount(() => {
-    ctx = canvas.getContext('2d')!;
-    if (!ctx) {
-      console.error('Canvas context not available');
-      return;
+    loadDrawingData();
+
+    // 初期ブラシ設定
+    if (!canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
     }
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
+    canvas.freeDrawingBrush.color = currentColor;
+    canvas.freeDrawingBrush.width = currentSize;
+
+    // 初期状態を保存（アンドゥ対象外）
+    initialState = canvas.toJSON();
+    undoStack.push(initialState);
+
+    // 描画完了時の履歴保存
+    canvas.on("object:added", () => {
+      if (!readonly) {
+        saveState();
+      }
+    });
   });
 
-  redrawCanvas();
+  /**
+   * 描画データをFabric.jsのCanvasに適用
+   */
+  function loadDrawingData() {
+    if (!canvas) return;
+
+    canvas.clear(); // 既存の描画をクリア
+
+    let pathData: string[] = [];
+    let lastPath: fabric.Path | null = null;
+
+    drawingData.forEach(({ x, y, color, size, isNewStroke }) => {
+      if (isNewStroke || !lastPath) {
+        // 新しいパスを作成
+        pathData = [`M ${x} ${y}`];
+        lastPath = new fabric.Path(pathData.join(" "), {
+          stroke: color,
+          strokeWidth: size,
+          fill: "transparent",
+          selectable: false,
+          evented: false,
+        });
+        canvas.add(lastPath);
+      } else {
+        // 既存のパスを削除して新しいパスを作成
+        pathData.push(`L ${x} ${y}`);
+        canvas.remove(lastPath); // 既存のパスを削除
+        lastPath = new fabric.Path(pathData.join(" "), {
+          stroke: color,
+          strokeWidth: size,
+          fill: "transparent",
+          selectable: false,
+          evented: false,
+        });
+        canvas.add(lastPath);
+      }
+    });
+
+    canvas.renderAll();
+  }
+
+  /**
+   * アンドゥ（Ctrl + Z）
+   */
+  const undo = () => {
+    if (undoStack.length > 1) {
+      redoStack.push(undoStack.pop());
+      canvas.loadFromJSON(undoStack[undoStack.length - 1], canvas.renderAll.bind(canvas));
+    }
+  };
+
+  /**
+   * リドゥ（Ctrl + Y）
+   */
+  const redo = () => {
+    if (redoStack.length) {
+      undoStack.push(redoStack.pop());
+      canvas.loadFromJSON(undoStack[undoStack.length - 1], canvas.renderAll.bind(canvas));
+    }
+  };
+
+  /**
+   * ペンの太さ変更
+   */
+   const changeSize = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    const size = target?.valueAsNumber;
+    if (size && canvas.freeDrawingBrush) {
+      currentSize = size;
+      canvas.freeDrawingBrush.width = size;
+    }
+  };
+
+  /**
+   * 色変更
+   */
+  const changeColor = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    if (target) {
+      currentColor = target.value;
+      if (canvas.freeDrawingBrush) {
+        canvas.freeDrawingBrush.color = currentColor;
+      }
+    }
+  };
+
+  /**
+   * 消しゴムモード切り替え
+   */
+  const toggleEraser = () => {
+    isErasing = !isErasing;
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = isErasing ? "white" : currentColor;
+    }
+  };
+
+  /**
+   * キーボードショートカット
+   */
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.ctrlKey && e.key === "z") {
+      undo();
+    } else if (e.ctrlKey && e.key === "y") {
+      redo();
+    }
+  };
+
+  /**
+   * 描画データを保存（変更があるたびに実行）
+   */
+  const saveState = () => {
+    if (!readonly) {
+      undoStack.push(canvas.toJSON());
+      redoStack = [];
+    }
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
 </script>
 
-<canvas
-  class="border-2 touch-none"
-  width="300"
-  height="500"
-  bind:this={canvas}
-  on:mousedown={startDrawing}
-  on:mousemove={draw}
-  on:mouseup={stopDrawing}
-  on:mouseleave={stopDrawing}
-  on:touchstart={startDrawing}
-  on:touchmove={draw}
-  on:touchend={stopDrawing}
-  on:touchcancel={stopDrawing}
-></canvas>
+<canvas id="drawingCanvas" width="300" height="500" class="border-2"></canvas>
+
+<!-- 操作パネル -->
+<div class="flex gap-2 mt-2">
+  <button on:click={undo} disabled={readonly}>アンドゥ (Ctrl+Z)</button>
+  <button on:click={redo} disabled={readonly}>リドゥ (Ctrl+Y)</button>
+  <button on:click={toggleEraser} disabled={readonly}>{isErasing ? "ペン" : "消しゴム"}</button>
+  <input type="range" min="1" max="20" value={currentSize} on:input={(e) => changeSize(e)} disabled={readonly} />
+  <input type="color" value={currentColor} on:input={(e) => changeColor(e)} disabled={readonly} />
+</div>

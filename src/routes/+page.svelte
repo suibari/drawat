@@ -9,6 +9,7 @@
   const drawingData = getContext("drawingData") as ReturnType<typeof writable<App.Path[]>>;
   const dids = getContext("dids") as ReturnType<typeof writable<string[]>>;
   const did = getContext("did") as ReturnType<typeof writable<string>>;
+  const isLoading = getContext("isLoading") as ReturnType<typeof writable<boolean>>;
 
   let isPostAndLoading = $state(false);
   let isDeleteing = $state(false);
@@ -48,20 +49,22 @@
 
 <div class="flex flex-col md:flex-row items-center justify-center">
   <div class="flex flex-col gap-2 mb-2">
-    <Canvas drawingData={$drawingData} readonly={$did ? false : true} userDid={$did} />
-    {#if $did}
-      <button
-        onclick={saveDrawingData}
-        class="px-4 py-2 bg-sky-400 text-white rounded-lg hover:bg-sky-500 transition"
-      >
-        post & load!
-      </button>
-      <button
-        onclick={deleteDrawingData}
-        class="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition"
-      >
-        delete my drawing
-      </button>
+    {#if !$isLoading}
+      <Canvas drawingData={$drawingData} readonly={$did ? false : true} userDid={$did} />
+      {#if $did}
+        <button
+          onclick={saveDrawingData}
+          class="px-4 py-2 bg-sky-400 text-white rounded-lg hover:bg-sky-500 transition"
+        >
+          post & load!
+        </button>
+        <button
+          onclick={deleteDrawingData}
+          class="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition"
+        >
+          delete my drawing
+        </button>
+      {/if}
     {/if}
   </div>
   <div class="flex sm:self-start">
