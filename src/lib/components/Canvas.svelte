@@ -55,16 +55,14 @@
     for (const data of pastDrawingData) {
       try {
         lockHistory = true;
-        if (!Array.isArray(data)) {
-          // `fabric.js` の JSON 形式なら通常通り適用
-          await new Promise((resolve) => {
-            canvas.loadFromJSON(data, () => {
-              canvas.renderAll();
-              resolve(true);
-            });
+        // `fabric.js` の JSON 形式なら通常通り適用
+        await new Promise((resolve) => {
+          canvas.loadFromJSON(data, () => {
+            canvas.renderAll();
+            resolve(true);
           });
-        }
-        lockHistory = false;
+        });
+        setTimeout(() => (lockHistory = false), 0); // setTimeoutで非同期実行し、完全に描画が終わった後に解除。こうしないとダメ
       } catch (error) {
         console.error("Error loading past drawing:", error);
       }
@@ -161,15 +159,17 @@
   window.addEventListener("keydown", handleKeyDown);
 </script>
 
-<canvas id="drawingCanvas" width="300" height="500" class="border-2"></canvas>
-
-<!-- 操作パネル -->
-{#if !readOnly}
-  <div class="flex gap-2 mt-2">
-    <button onclick={undo}>アンドゥ (Ctrl+Z)</button>
-    <button onclick={redo}>リドゥ (Ctrl+Y)</button>
-    <button onclick={toggleEraser}>消しゴム</button>
-    <input type="range" min="1" max="20" value="5" oninput={changeSize} />
-    <input type="color" value="#000000" oninput={changeColor} />
-  </div>
-{/if}
+<div class="flex flex-col md:flex-row">
+  <canvas id="drawingCanvas" width="300" height="500" class="border-2"></canvas>
+  {#if !readOnly}
+    <div class="flex flex-col gap-2 mx-2 my-2">
+      <button class="button-sky" onclick={undo}>Undo (Ctrl+Z)</button>
+      <button class="button-sky" onclick={redo}>Redo (Ctrl+Y)</button>
+      <button class="button-sky" onclick={toggleEraser}>Eraser</button>
+      <p class="font-semibold">Blush Size:</p>
+      <input type="range" min="1" max="20" value="5" oninput={changeSize} />
+      <p class="font-semibold">Color Picker:</p>
+      <input type="color" value="#000000" oninput={changeColor} />
+    </div>
+  {/if}
+</div>

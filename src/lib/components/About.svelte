@@ -5,7 +5,7 @@
 
 <Modal title="About DrawAt!" bind:open={aboutModal} autoclose outsideclose class="max-h-[95vh] overflow-auto">
   <div class="space-y-2">
-    <p><b>DrawAt</b>は、AT Protocolを利用したお絵描きチャットです。</p>
+    <p><b>DrawAt</b>は、AT Protocolによるお絵描きチャットをコンセプトとしたサービスです。(現在はAT Proto連携はオミット中)</p>
     <p>お絵描きにあたってはBlueskyのアカウントによる認証が必要です。</p>
     <p><a href="https://bsky.app/profile/suibari.com" target="_blank">すいばり</a> が開発を行いました。</p>
   </div>

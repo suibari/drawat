@@ -58,7 +58,7 @@
       {#if $did}
         <button
           onclick={saveDrawingData}
-          class="px-4 py-2 bg-sky-400 text-white rounded-lg hover:bg-sky-500 transition"
+          class="button-sky"
         >
           post & load!
         </button>

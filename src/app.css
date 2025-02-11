@@ -16,3 +16,27 @@ a {
   font-weight: 400;
   font-style: normal;
 }
+
+.button-sky {
+  padding: 0.5rem 1rem; /* px-4 py-2 */
+  background-color: #38bdf8; /* bg-sky-400 */
+  color: white; /* text-white */
+  border-radius: 0.5rem; /* rounded-lg */
+  transition: background-color 0.2s ease-in-out; /* transition */
+}
+
+.button-sky:hover {
+  background-color: #0ea5e9; /* hover:bg-sky-500 */
+}
+
+.button-pink {
+  padding: 0.5rem 1rem; /* px-4 py-2 */
+  background-color: #ec4899; /* bg-pink-500 */
+  color: white; /* text-white */
+  border-radius: 0.5rem; /* rounded-lg */
+  transition: background-color 0.2s ease-in-out; /* transition */
+}
+
+.button-pink:hover {
+  background-color: #db2777; /* hover:bg-pink-600 */
+}

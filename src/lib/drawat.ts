@@ -46,10 +46,11 @@ export async function getRecordsVector(myDid: string): Promise<{
 
   try {
     const data = await getAllRows();
-    const filteredData = data.filter(row => new Date(row.updated_at).getTime() >= oneWeekAgo);
+    const filteredData = data
+      .filter(row => new Date(row.updated_at).getTime() >= oneWeekAgo) // 1週間以内のデータのみ抽出
+      .filter(row => !Array.isArray(row.vector)); // 旧形式データは除外
 
     const dids = filteredData
-      .filter(row => row.vector?.length > 0)
       .map(row => row.did);
 
     const myDrawingData = filteredData
