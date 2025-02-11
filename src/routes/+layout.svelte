@@ -11,7 +11,8 @@
   import { OAuthSession } from '@atproto/oauth-client-browser';
   import Login from '$lib/components/Login.svelte';
 
-  const drawingData = writable<App.Path[]>([]);
+  const myDrawingData = writable<string>();
+  const pastDrawingData = writable<string[]>([]);
   const dids = writable<string[]>([]);
   const did = writable<string>();
   const isLoading = writable<boolean>(true);
@@ -21,7 +22,8 @@
   let aboutModal = $state(false);
   let loginModal = $state(false);
 
-  setContext("drawingData", drawingData);
+  setContext("myDrawingData", myDrawingData);
+  setContext("pastDrawingData", pastDrawingData);
   setContext("dids", dids);
   setContext("did", did);
   setContext("isLoading", isLoading)
@@ -34,9 +36,10 @@
     await initOAuthClient();
 
     // Canvas描画
-    const result = await getRecordsVector();
+    const result = await getRecordsVector($did);
     if (result) {
-      drawingData.set(result.paths);
+      myDrawingData.set(result.myDrawingData)
+      pastDrawingData.set(result.pastDrawingData);
       dids.set(result.dids);
     }
 
@@ -63,9 +66,10 @@
     did.set("");
 
     // 画像削除されたことをユーザに見せる
-    const result = await getRecordsVector();
+    const result = await getRecordsVector($did);
     if (result) {
-      drawingData.set(result.paths);
+      myDrawingData.set(result.myDrawingData)
+      pastDrawingData.set(result.pastDrawingData);
     }
 
     isLoggingOut = false;

@@ -6,7 +6,8 @@
   import DidsList from '$lib/components/DidsList.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
 
-  const drawingData = getContext("drawingData") as ReturnType<typeof writable<App.Path[]>>;
+  const myDrawingData = getContext("myDrawingData") as ReturnType<typeof writable<string>>;
+  const pastDrawingData = getContext("pastDrawingData") as ReturnType<typeof writable<string[]>>;
   const dids = getContext("dids") as ReturnType<typeof writable<string[]>>;
   const did = getContext("did") as ReturnType<typeof writable<string>>;
   const isLoading = getContext("isLoading") as ReturnType<typeof writable<boolean>>;
@@ -18,23 +19,26 @@
     if ($did) {
       isPostAndLoading = true;
 
-      await putRecordVector({did: $did, paths: $drawingData.filter(path => path.author === $did)});
-      const result = await getRecordsVector();
-      if (result) {
-        drawingData.set(result.paths);
-      }
+      console.log($myDrawingData)
+      // await putRecordVector({did: $did, paths: $myDrawingData});
+      // const result = await getRecordsVector($did);
+      // if (result) {
+      //   myDrawingData.set(result.myDrawingData)
+      //   pastDrawingData.set(result.pastDrawingData);
+      // }
       isPostAndLoading = false;
     }
   };
 
   const deleteDrawingData = async () => {
-    if (did) {
+    if ($did) {
       isDeleteing = true;
 
       await deleteRecordVector($did);
-      const result = await getRecordsVector();
+      const result = await getRecordsVector($did);
       if (result) {
-        drawingData.set(result.paths);
+        myDrawingData.set(result.myDrawingData)
+        pastDrawingData.set(result.pastDrawingData);
       }
       isDeleteing = false;
     }
@@ -50,7 +54,7 @@
 <div class="flex flex-col md:flex-row items-center justify-center">
   <div class="flex flex-col gap-2 mb-2">
     {#if !$isLoading}
-      <Canvas drawingData={$drawingData} readonly={$did ? false : true} userDid={$did} />
+      <Canvas pastDrawingData={$pastDrawingData} bind:myDrawingData={$myDrawingData} readOnly={$did ? false : true} />
       {#if $did}
         <button
           onclick={saveDrawingData}

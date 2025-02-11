@@ -5,38 +5,30 @@ import { deleteRow, getAllRows, postRow } from "./supabase";
 const collection = 'blue.drawat.vector';
 const rkey = 'self';
 
-// export async function test(did: string) {
-//   if (!browser) return;
-
-//   if (session) {
-//     const agent = new Agent(session);
-//     const {data} = await agent.getProfile({actor: did});
-//     console.log(data);
-//   }
-// }
-
 export async function putRecordVector({
   did,
   paths,
 }: {
   did: string,
-  paths: App.Path[],
+  paths: string,
 }): Promise<void> {
+
   const record: App.RecordVector = {
     $type: collection,
+    did,
     paths,
     createdAt: new Date().toISOString(),
   }
 
   try {
     // User Repo保存
-    const response = await agent?.com.atproto.repo.putRecord({
-      repo: did,
-      collection,
-      rkey,
-      record,
-    });
-    console.log(`[INFO] successful put record`);
+    // const response = await agent?.com.atproto.repo.putRecord({
+    //   repo: did,
+    //   collection,
+    //   rkey,
+    //   record,
+    // });
+    // console.log(`[INFO] successful put record`);
 
     // supabase登録
     await postRow({did, vector: paths, updated_at: new Date().toISOString()});
@@ -45,20 +37,29 @@ export async function putRecordVector({
   }
 }
 
-export async function getRecordsVector(): Promise<{ paths: App.Path[]; dids: string[] } | null> {
+export async function getRecordsVector(myDid: string): Promise<{
+  myDrawingData: string;
+  pastDrawingData: string[];
+  dids: string[]
+} | null> {
   const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000; // 1週間前のタイムスタンプ
 
   try {
     const data = await getAllRows();
     const filteredData = data.filter(row => new Date(row.updated_at).getTime() >= oneWeekAgo);
+
     const dids = filteredData
       .filter(row => row.vector?.length > 0)
       .map(row => row.did);
-    const paths = filteredData
-      .flatMap(row => row.vector?.length > 0 ? row.vector : []);
 
-    console.log(`[INFO] Successfully got records, length: ${paths.length}`);
-    return { paths, dids };
+    const myDrawingData = filteredData
+      .filter(row => row.did === myDid)[0]?.vector;
+
+    const pastDrawingData = filteredData
+      .filter(row => row.did !== myDid).map(row => row.vector);
+
+    console.log(`[INFO] Successfully got records, length: ${pastDrawingData.length}`);
+    return { pastDrawingData, myDrawingData, dids };
   } catch (error) {
     console.error("Failed to get records:", error);
     return null;

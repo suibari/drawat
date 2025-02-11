@@ -1,118 +1,129 @@
 <script lang="ts">
-  import { onMount, afterUpdate, beforeUpdate } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import * as fabric from "fabric";
-    import type { Facet } from "@atproto/api";
 
-  export let drawingData: App.Path[] = [];
-  export let readonly: boolean = false;
-  export const userDid: string | null = null;
+  let {
+    pastDrawingData,
+    myDrawingData = $bindable(),
+    readOnly,
+  }: {
+    pastDrawingData: string[] | null
+    myDrawingData: string | undefined
+    readOnly: boolean
+  } = $props();
 
   let canvas: fabric.Canvas;
-  let undoStack: any[] = [];
-  let redoStack: any[] = [];
-  let currentColor = "#000000";
-  let currentSize = 5;
-  let isErasing = false;
-  let initialState: any = null; // 初期データの状態を保存
+  let undoStack: string[] = [];
+  let redoStack: string[] = [];
+  let lockHistory = false; // Undo/Redo/Loading中にSaveさせないためのフラグ
 
   /**
    * 初回マウント時の処理
    */
-  onMount(() => {
-    canvas = new fabric.Canvas("drawingCanvas", {
-      isDrawingMode: !readonly, // readonlyなら描画モードをオフ
-    });
+  onMount(async () => {
+    canvas = new fabric.Canvas("drawingCanvas");
+    canvas.isDrawingMode = !readOnly; // readOnlyなら描画不可
 
-    loadDrawingData();
-
-    // 初期ブラシ設定
+    // ペンの初期設定
     if (!canvas.freeDrawingBrush) {
       canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+      canvas.freeDrawingBrush.color = "#000000";
+      canvas.freeDrawingBrush.width = 5;
     }
-    canvas.freeDrawingBrush.color = currentColor;
-    canvas.freeDrawingBrush.width = currentSize;
 
-    // 初期状態を保存（アンドゥ対象外）
-    initialState = canvas.toJSON();
-    undoStack.push(initialState);
+    // 過去の描画データを読み込む
+    await loadPastDrawings();
 
-    // 描画完了時の履歴保存
-    canvas.on("object:added", () => {
-      if (!readonly) {
-        saveState();
-      }
-    });
+    // 初期状態をスタックに保存
+    saveState();
+
+    // 描画変更時にデータ保存
+    canvas.on("object:added", saveState);
+    canvas.on("object:modified", saveState);
+  });
+
+  onDestroy(() => {
+    canvas.dispose();
   });
 
   /**
-   * 描画データをFabric.jsのCanvasに適用
+   * すべての過去データをCanvasに適用
    */
-  function loadDrawingData() {
-    if (!canvas) return;
+  const loadPastDrawings = async () => {
+    if (!pastDrawingData || !canvas) return;
 
-    canvas.clear(); // 既存の描画をクリア
-
-    let pathData: string[] = [];
-    let lastPath: fabric.Path | null = null;
-
-    drawingData.forEach(({ x, y, color, size, isNewStroke }) => {
-      if (isNewStroke || !lastPath) {
-        // 新しいパスを作成
-        pathData = [`M ${x} ${y}`];
-        lastPath = new fabric.Path(pathData.join(" "), {
-          stroke: color,
-          strokeWidth: size,
-          fill: "transparent",
-          selectable: false,
-          evented: false,
-        });
-        canvas.add(lastPath);
-      } else {
-        // 既存のパスを削除して新しいパスを作成
-        pathData.push(`L ${x} ${y}`);
-        canvas.remove(lastPath); // 既存のパスを削除
-        lastPath = new fabric.Path(pathData.join(" "), {
-          stroke: color,
-          strokeWidth: size,
-          fill: "transparent",
-          selectable: false,
-          evented: false,
-        });
-        canvas.add(lastPath);
+    for (const data of pastDrawingData) {
+      try {
+        lockHistory = true;
+        if (!Array.isArray(data)) {
+          // `fabric.js` の JSON 形式なら通常通り適用
+          await new Promise((resolve) => {
+            canvas.loadFromJSON(data, () => {
+              canvas.renderAll();
+              resolve(true);
+            });
+          });
+        }
+        lockHistory = false;
+      } catch (error) {
+        console.error("Error loading past drawing:", error);
       }
-    });
+    }
+  };
 
-    canvas.renderAll();
-  }
+  /**
+   * 描画データを保存（親コンポーネントへ通知）
+   */
+  const saveState = () => {
+    console.log(readOnly, lockHistory)
+    if (!readOnly && !lockHistory) {
+      const newState = JSON.stringify(canvas);
+      undoStack.push(newState);
+
+      myDrawingData = newState;
+      redoStack = []; // アンドゥ後のリドゥ履歴をリセット
+    }
+  };
 
   /**
    * アンドゥ（Ctrl + Z）
    */
   const undo = () => {
     if (undoStack.length > 1) {
-      redoStack.push(undoStack.pop());
-      canvas.loadFromJSON(undoStack[undoStack.length - 1], canvas.renderAll.bind(canvas));
+      lockHistory = true;
+      redoStack.push(undoStack.pop()!);
+      const content = undoStack[undoStack.length - 1];
+
+      canvas.loadFromJSON(content, () => {
+        canvas.requestRenderAll();
+        setTimeout(() => (lockHistory = false), 0); // setTimeoutで非同期実行し、完全に描画が終わった後に解除。こうしないとダメ
+      });
     }
   };
+
 
   /**
    * リドゥ（Ctrl + Y）
    */
   const redo = () => {
-    if (redoStack.length) {
-      undoStack.push(redoStack.pop());
-      canvas.loadFromJSON(undoStack[undoStack.length - 1], canvas.renderAll.bind(canvas));
+    if (redoStack.length > 0) {
+      lockHistory = true;
+      const content = redoStack.pop()!;
+      undoStack.push(content);
+
+      canvas.loadFromJSON(content, () => {
+        canvas.requestRenderAll();
+        setTimeout(() => (lockHistory = false), 0); // setTimeoutで非同期実行し、完全に描画が終わった後に解除。こうしないとダメ
+      });
     }
   };
 
   /**
    * ペンの太さ変更
    */
-   const changeSize = (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    const size = target?.valueAsNumber;
-    if (size && canvas.freeDrawingBrush) {
-      currentSize = size;
+  const changeSize = (e: Event) => {
+    const size = (e.target as HTMLInputElement).valueAsNumber;
+    if (canvas.freeDrawingBrush) {
       canvas.freeDrawingBrush.width = size;
     }
   };
@@ -121,12 +132,9 @@
    * 色変更
    */
   const changeColor = (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    if (target) {
-      currentColor = target.value;
-      if (canvas.freeDrawingBrush) {
-        canvas.freeDrawingBrush.color = currentColor;
-      }
+    const color = (e.target as HTMLInputElement).value;
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = color;
     }
   };
 
@@ -134,9 +142,8 @@
    * 消しゴムモード切り替え
    */
   const toggleEraser = () => {
-    isErasing = !isErasing;
     if (canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = isErasing ? "white" : currentColor;
+      canvas.freeDrawingBrush.color = canvas.freeDrawingBrush.color === "white" ? "#000000" : "white";
     }
   };
 
@@ -151,26 +158,18 @@
     }
   };
 
-  /**
-   * 描画データを保存（変更があるたびに実行）
-   */
-  const saveState = () => {
-    if (!readonly) {
-      undoStack.push(canvas.toJSON());
-      redoStack = [];
-    }
-  };
-
   window.addEventListener("keydown", handleKeyDown);
 </script>
 
 <canvas id="drawingCanvas" width="300" height="500" class="border-2"></canvas>
 
 <!-- 操作パネル -->
-<div class="flex gap-2 mt-2">
-  <button on:click={undo} disabled={readonly}>アンドゥ (Ctrl+Z)</button>
-  <button on:click={redo} disabled={readonly}>リドゥ (Ctrl+Y)</button>
-  <button on:click={toggleEraser} disabled={readonly}>{isErasing ? "ペン" : "消しゴム"}</button>
-  <input type="range" min="1" max="20" value={currentSize} on:input={(e) => changeSize(e)} disabled={readonly} />
-  <input type="color" value={currentColor} on:input={(e) => changeColor(e)} disabled={readonly} />
-</div>
+{#if !readOnly}
+  <div class="flex gap-2 mt-2">
+    <button onclick={undo}>アンドゥ (Ctrl+Z)</button>
+    <button onclick={redo}>リドゥ (Ctrl+Y)</button>
+    <button onclick={toggleEraser}>消しゴム</button>
+    <input type="range" min="1" max="20" value="5" oninput={changeSize} />
+    <input type="color" value="#000000" oninput={changeColor} />
+  </div>
+{/if}
