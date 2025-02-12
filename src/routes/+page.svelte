@@ -15,17 +15,20 @@
   let isPostAndLoading = $state(false);
   let isDeleteing = $state(false);
 
+  let canvasComponent = $state<ReturnType<typeof Canvas>>();
+
   const saveDrawingData = async () => {
     if ($did) {
       isPostAndLoading = true;
 
       console.log($myDrawingData)
-      // await putRecordVector({did: $did, paths: $myDrawingData});
-      // const result = await getRecordsVector($did);
-      // if (result) {
-      //   myDrawingData.set(result.myDrawingData)
-      //   pastDrawingData.set(result.pastDrawingData);
-      // }
+      await putRecordVector({did: $did, paths: $myDrawingData});
+      const result = await getRecordsVector($did);
+      if (result) {
+        myDrawingData.set(result.myDrawingData)
+        pastDrawingData.set(result.pastDrawingData);
+        dids.set(result.dids);
+      }
       isPostAndLoading = false;
     }
   };
@@ -39,6 +42,9 @@
       if (result) {
         myDrawingData.set(result.myDrawingData)
         pastDrawingData.set(result.pastDrawingData);
+        await canvasComponent?.loadPastDrawings();
+
+        dids.set(result.dids);
       }
       isDeleteing = false;
     }
@@ -54,7 +60,12 @@
 <div class="flex flex-col md:flex-row items-center justify-center">
   <div class="flex flex-col gap-2 mb-2">
     {#if !$isLoading}
-      <Canvas pastDrawingData={$pastDrawingData} bind:myDrawingData={$myDrawingData} readOnly={$did ? false : true} />
+      <Canvas
+        pastDrawingData={$pastDrawingData}
+        bind:myDrawingData={$myDrawingData}
+        readOnly={$did ? false : true}
+        bind:this={canvasComponent}
+      />
       {#if $did}
         <button
           onclick={saveDrawingData}

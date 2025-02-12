@@ -35,7 +35,7 @@
     await loadPastDrawings();
 
     // 初期状態をスタックに保存
-    saveState();
+    await saveState();
 
     // 描画変更時にデータ保存
     canvas.on("object:added", saveState);
@@ -49,7 +49,7 @@
   /**
    * すべての過去データをCanvasに適用
    */
-  const loadPastDrawings = async () => {
+  export const loadPastDrawings = async () => {
     if (!pastDrawingData || !canvas) return;
 
     for (const data of pastDrawingData) {
@@ -58,7 +58,10 @@
         // `fabric.js` の JSON 形式なら通常通り適用
         await new Promise((resolve) => {
           canvas.loadFromJSON(data, () => {
-            canvas.renderAll();
+            canvas.getObjects().forEach(obj => {
+              obj.set("pastDrawingData", true);
+            });
+            canvas.requestRenderAll();
             resolve(true);
           });
         });
@@ -70,15 +73,19 @@
   };
 
   /**
-   * 描画データを保存（親コンポーネントへ通知）
+   * 描画データを保存
    */
-  const saveState = () => {
-    console.log(readOnly, lockHistory)
+  const saveState = async () => {
     if (!readOnly && !lockHistory) {
-      const newState = JSON.stringify(canvas);
-      undoStack.push(newState);
+      const tmpCanvas = new fabric.Canvas('tmpCanvas');
+      const drawableObjects = canvas.getObjects().filter(obj => obj.get("pastDrawingData") !== true);
+      const clonedObjects = await Promise.all(drawableObjects.map(obj => obj.clone()));
+      clonedObjects.forEach(clonedObj => tmpCanvas.add(clonedObj));
+      const newState = JSON.stringify(tmpCanvas);
 
+      undoStack.push(newState);
       myDrawingData = newState;
+
       redoStack = []; // アンドゥ後のリドゥ履歴をリセット
     }
   };
@@ -93,7 +100,7 @@
       const content = undoStack[undoStack.length - 1];
 
       canvas.loadFromJSON(content, () => {
-        canvas.requestRenderAll();
+        canvas.requestRenderAll(); // renderAllだとうまくいかない
         setTimeout(() => (lockHistory = false), 0); // setTimeoutで非同期実行し、完全に描画が終わった後に解除。こうしないとダメ
       });
     }
@@ -110,7 +117,7 @@
       undoStack.push(content);
 
       canvas.loadFromJSON(content, () => {
-        canvas.requestRenderAll();
+        canvas.requestRenderAll(); // renderAllだとうまくいかない
         setTimeout(() => (lockHistory = false), 0); // setTimeoutで非同期実行し、完全に描画が終わった後に解除。こうしないとダメ
       });
     }

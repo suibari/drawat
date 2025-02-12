@@ -70,6 +70,7 @@
     if (result) {
       myDrawingData.set(result.myDrawingData)
       pastDrawingData.set(result.pastDrawingData);
+      dids.set(result.dids);
     }
 
     isLoggingOut = false;
