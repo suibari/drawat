@@ -14,14 +14,16 @@ let client: BrowserOAuthClient | null = null;
 export let agent: Agent | null = null;
 export let session: OAuthSession | null = null;
 
-// ------------------
-// init
-// ------------------
-export async function initOAuthClient(): Promise<BrowserOAuthClient | null> {
+/**
+ * OAuthクライアント初期化
+ * @param provider 
+ * @returns 
+ */
+export async function initOAuthClient(provider: string): Promise<BrowserOAuthClient | null> {
   if (!browser || client !== null) return null;
 
   client = new BrowserOAuthClient({
-    handleResolver: 'https://bsky.social',
+    handleResolver: provider,
     clientMetadata: {
       client_id:
         PUBLIC_NODE_ENV === "production" ? `${url}/client-metadata.json` :
@@ -55,16 +57,21 @@ export async function initOAuthClient(): Promise<BrowserOAuthClient | null> {
  * @param handle 
  * @returns 
  */
-export async function login(handle: string): Promise<void> {
-  if (!browser || client === null) return;
+export async function login({provider, handle}: {provider: string, handle: string}): Promise<void> {
+  if (!browser) return;
 
-  sessionStorage.setItem('handle', handle);
-
-  const authUrl: string = await client.signIn(handle, {
-    prompt: 'login',
-    ui_locales: 'ja-JP',
-  });
-  window.location.href = authUrl;
+  try {
+    client = await initOAuthClient(provider);
+    if (client) {
+      const authUrl: string = await client.signIn(handle, {
+        prompt: 'login',
+        ui_locales: 'ja-JP',
+      });
+      window.location.href = authUrl;
+    }
+  } catch (error) {
+    console.error(`failed to log-in: ${error}`);
+  }
 }
 
 /**
@@ -77,7 +84,8 @@ export async function logout(did: string): Promise<void> {
 
   try {
     // tokenを破棄
-    client = await initOAuthClient();
+    const provider = sessionStorage.getItem('provider')!;
+    client = await initOAuthClient(provider);
     if (client) {
       await client.revoke(did);
     }
@@ -104,7 +112,8 @@ export async function logout(did: string): Promise<void> {
 export async function handleCallback(): Promise<void> {
   if (!browser) return; // リダイレクトによりclientは消失しているはず
 
-  client = await initOAuthClient();
+  const provider = sessionStorage.getItem('provider')!;
+  client = await initOAuthClient(provider);
 
   const did = await getDIDFromIndexedDB();
   if (did && client) {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { onMount, setContext } from "svelte";
-  import { initOAuthClient, logout } from "$lib/oauth";
+  import { logout } from "$lib/oauth";
   import { getRecordsVector } from '$lib/drawat';
   import { writable } from 'svelte/store';
   import { Navbar, NavBrand, NavLi, NavUl, NavHamburger } from 'flowbite-svelte';
@@ -29,8 +29,6 @@
 
   onMount(async () => {
     isLoading = true;
-
-    await initOAuthClient();
 
     const result = await getRecordsVector();
     if (result) {
