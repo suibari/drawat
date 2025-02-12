@@ -58,6 +58,7 @@ export async function getRecordsVector(myDid: string): Promise<{
 
     const pastDrawingData = filteredData
       .filter(row => row.did !== myDid)
+      .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()) // 古いものが前、新しいものが後ろ
       .map(row => row.vector);
 
     console.log(`[INFO] my records: ${myDrawingData}`);

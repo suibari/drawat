@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import * as fabric from "fabric";
+    import { json } from "@sveltejs/kit";
 
   const MAX_STACK_SIZE = 10;
 
@@ -39,7 +40,7 @@
     await loadPastDrawings();
 
     // 初期状態をスタックに保存
-    await saveState();
+    undoStack.push(canvas.toJSON());
 
     // 描画変更時にデータ保存
     canvas.on("object:added", saveState);
@@ -51,47 +52,45 @@
   });
 
   /**
-   * すべての過去データをCanvasに適用
+   * すべての過去データをCanvasに適用（統合処理）
    */
   export const loadPastDrawings = async () => {
     if (!canvas) return;
 
     lockHistory = true;
     
-    // `myDrawingData` がある場合は適用
-    if (myDrawingData) {
-      await loadCanvasFromJSON(myDrawingData, false);
-    } else {
-      canvas.clear();
-    }
-
-    // すべての過去データを適用
     for (const data of pastDrawingData || []) {
-      await loadCanvasFromJSON(data, true);
+      await mergeCanvasFromJSON(data, true);
     }
 
+    if (myDrawingData) {
+      await mergeCanvasFromJSON(myDrawingData, false);
+    }
 
-    lockHistory = false; // なぜかここは非同期だとうまくいかない…
+    canvas.requestRenderAll();
+    lockHistory = false;
   };
 
   /**
-   * JSONデータをCanvasに適用する関数
-   * @param jsonData 適用するJSONデータ
-   * @param isOhtersData `true`ならothersDrawingDataを付与
+   * JSONデータをCanvasに統合する関数（オブジェクト単位）
+   * @param jsonData 統合するJSONデータ
    */
-  const loadCanvasFromJSON = async (jsonData: string, isOhtersData: boolean) => {
+  const mergeCanvasFromJSON = async (jsonData: string, isOthersData: boolean) => {
     try {
+      const tmpCanvas = new fabric.StaticCanvas(undefined); // 描画用のDOM要素なし
       await new Promise((resolve) => {
-        canvas.loadFromJSON(jsonData, () => {
-          if (isOhtersData) {
-            canvas.getObjects().forEach(obj => obj.set("othersDrawingData", true));
-          }
-          canvas.requestRenderAll();
-          setTimeout(resolve, 0); // 初期画像を表示してからsaveStateを行うため、レンダリング完了を確実に待つ
-        });
+        tmpCanvas.loadFromJSON(jsonData)
+          .then(() => {
+            const objs = tmpCanvas.getObjects();
+            objs.forEach((obj) => {
+              obj.set("othersDrawingData", isOthersData);
+              canvas.add(obj); // 既存キャンバスに追加
+            });
+            resolve(null);
+          });
       });
     } catch (error) {
-      console.error("Error loading drawing:", error);
+      console.error("Error merging drawing:", error);
     }
   };
 
@@ -100,21 +99,28 @@
    */
   const saveState = async () => {
     if (!readOnly && !lockHistory) {
-      const tmpCanvas = new fabric.Canvas('tmpCanvas');
-      const drawableObjects = canvas.getObjects().filter(obj => obj.get("othersDrawingData") !== true);
-      const clonedObjects = await Promise.all(drawableObjects.map(obj => obj.clone()));
-      clonedObjects.forEach(clonedObj => tmpCanvas.add(clonedObj));
-      const newState = JSON.stringify(tmpCanvas);
+      const allDrawingObjs = canvas.getObjects();
+      const myDrawingObjs = allDrawingObjs.filter(obj => obj.get("othersDrawingData") !== true);
 
+      const newState = fabricObjectsToJSON(allDrawingObjs);
+      myDrawingData = fabricObjectsToJSON(myDrawingObjs); 
+
+      console.log(myDrawingData);
       undoStack.push(newState);
       if (undoStack.length > MAX_STACK_SIZE) {
         undoStack.shift();
       }
 
-      myDrawingData = newState;
-
       redoStack = []; // アンドゥ後のリドゥ履歴をリセット
     }
+  };
+
+  /**
+   * FabricオブジェクトをJSONに変換
+   * @param objs
+   */
+  const fabricObjectsToJSON = (objs: fabric.FabricObject[]) => {
+    return JSON.stringify({ objects: objs.map(obj => obj.toObject()) });
   };
 
   /**
