@@ -17,6 +17,7 @@
   let redoStack: string[] = [];
   let lockHistory = false; // Undo/Redo/Loading中にSaveさせないためのフラグ
   let isEraser = $state(false);
+  let lastColor = "#000000"; // 最後に使っていた色を保存
 
   /**
    * 初回マウント時の処理
@@ -160,6 +161,7 @@
     const color = (e.target as HTMLInputElement).value;
     if (canvas.freeDrawingBrush) {
       canvas.freeDrawingBrush.color = color;
+      lastColor = color; // 色を変更したら保存
     }
   };
 
@@ -168,8 +170,15 @@
    */
   const toggleEraser = () => {
     if (canvas.freeDrawingBrush) {
+      if (!isEraser) {
+        // 消しゴムにする前に元の色を保存
+        lastColor = canvas.freeDrawingBrush.color as string;
+        canvas.freeDrawingBrush.color = "white"; // 消しゴム（背景色）
+      } else {
+        // 消しゴム解除時に元の色に戻す
+        canvas.freeDrawingBrush.color = lastColor;
+      }
       isEraser = !isEraser;
-      canvas.freeDrawingBrush.color = canvas.freeDrawingBrush.color === "white" ? "#000000" : "white";
     }
   };
 
