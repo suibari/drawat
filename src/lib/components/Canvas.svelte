@@ -16,6 +16,7 @@
   let undoStack: string[] = [];
   let redoStack: string[] = [];
   let lockHistory = false; // Undo/Redo/Loading中にSaveさせないためのフラグ
+  let isEraser = $state(false);
 
   /**
    * 初回マウント時の処理
@@ -53,16 +54,19 @@
     if (!canvas) return;
 
     lockHistory = true;
+    
+    // `myDrawingData` がある場合は適用
+    if (myDrawingData) {
+      await loadCanvasFromJSON(myDrawingData, false);
+    } else {
+      canvas.clear();
+    }
 
     // すべての過去データを適用
     for (const data of pastDrawingData || []) {
       await loadCanvasFromJSON(data, true);
     }
 
-    // `myDrawingData` がある場合は適用
-    if (myDrawingData) {
-      await loadCanvasFromJSON(myDrawingData, false);
-    }
 
     lockHistory = false; // なぜかここは非同期だとうまくいかない…
   };
@@ -164,6 +168,7 @@
    */
   const toggleEraser = () => {
     if (canvas.freeDrawingBrush) {
+      isEraser = !isEraser;
       canvas.freeDrawingBrush.color = canvas.freeDrawingBrush.color === "white" ? "#000000" : "white";
     }
   };
@@ -188,8 +193,8 @@
     <div class="flex flex-col gap-2 mx-2 my-2">
       <button class="button-sky" onclick={undo}>Undo (Ctrl+Z)</button>
       <button class="button-sky" onclick={redo}>Redo (Ctrl+Y)</button>
-      <button class="button-sky" onclick={toggleEraser}>Eraser</button>
-      <p class="font-semibold">Blush Size:</p>
+      <button class="button-sky" onclick={toggleEraser}>{isEraser ? "Switch Blush" : "Switch Eraser"}</button>
+      <p class="font-semibold">Stroke Size:</p>
       <input type="range" min="1" max="20" value="5" oninput={changeSize} />
       <p class="font-semibold">Color Picker:</p>
       <input type="color" value="#000000" oninput={changeColor} />

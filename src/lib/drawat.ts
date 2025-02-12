@@ -21,7 +21,7 @@ export async function putRecordVector({
   }
 
   try {
-    // User Repo保存
+    // User Repo保存: ATprotoオミットに伴い廃止
     // const response = await agent?.com.atproto.repo.putRecord({
     //   repo: did,
     //   collection,
@@ -51,6 +51,7 @@ export async function getRecordsVector(myDid: string): Promise<{
       .filter(row => !Array.isArray(row.vector)); // 旧形式データは除外
 
     const dids = filteredData
+      .filter(row => row.vector !== null)
       .map(row => row.did);
 
     const myDrawingData = filteredData
@@ -59,7 +60,8 @@ export async function getRecordsVector(myDid: string): Promise<{
     const pastDrawingData = filteredData
       .filter(row => row.did !== myDid).map(row => row.vector);
 
-    console.log(`[INFO] Successfully got records, length: ${pastDrawingData.length}`);
+    console.log(`[INFO] my records: ${myDrawingData}`);
+    console.log(`[INFO] others records, length: ${pastDrawingData.length}`);
     return { pastDrawingData, myDrawingData, dids };
   } catch (error) {
     console.error("Failed to get records:", error);

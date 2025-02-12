@@ -6,7 +6,7 @@
   import DidsList from '$lib/components/DidsList.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
 
-  const myDrawingData = getContext("myDrawingData") as ReturnType<typeof writable<string>>;
+  const myDrawingData = getContext("myDrawingData") as ReturnType<typeof writable<string | undefined>>;
   const pastDrawingData = getContext("pastDrawingData") as ReturnType<typeof writable<string[]>>;
   const dids = getContext("dids") as ReturnType<typeof writable<string[]>>;
   const did = getContext("did") as ReturnType<typeof writable<string>>;
@@ -18,10 +18,9 @@
   let canvasComponent = $state<ReturnType<typeof Canvas>>();
 
   const saveDrawingData = async () => {
-    if ($did) {
+    if ($did && $myDrawingData) {
       isPostAndLoading = true;
 
-      console.log($myDrawingData)
       await putRecordVector({did: $did, paths: $myDrawingData});
       const result = await getRecordsVector($did);
       if (result) {
@@ -40,7 +39,7 @@
       await deleteRecordVector($did);
       const result = await getRecordsVector($did);
       if (result) {
-        myDrawingData.set(result.myDrawingData)
+        myDrawingData.set(undefined);
         pastDrawingData.set(result.pastDrawingData);
         await canvasComponent?.loadPastDrawings();
 
