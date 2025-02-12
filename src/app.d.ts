@@ -9,7 +9,8 @@ declare global {
 		// interface Platform {}
 
 		export interface RecordVector {
-			paths: Path[]
+			did: string
+			paths: string
 			createdAt: string
 			[k: string]: unknown
 		}
@@ -26,7 +27,7 @@ declare global {
 
 		export interface dbVector {
 			did: string
-			vector: Path[]
+			vector: string
 			created_at: string
 			updated_at: string
 		}

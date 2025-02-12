@@ -85,8 +85,8 @@ export async function logout(did: string): Promise<void> {
     // session情報を破棄
     localStorage.removeItem('oauth_session');
 
-    // お絵描き情報を削除
-    await deleteRecordVector(did);
+    // お絵描き情報を削除: ATprotoオミットに伴い廃止
+    // await deleteRecordVector(did);
 
     // supabase削除
     await deleteRow(did);

@@ -9,8 +9,6 @@ if (PUBLIC_NODE_ENV === "development") {
 }
 
 export const getAllRows = async (): Promise<App.dbVector[]> => {
-  let dids: string[] = [];
-
   const response = await fetch(PUBLIC_WORKERS_URL, {
     method: 'GET',
     headers,
@@ -32,7 +30,7 @@ export const postRow = async ({
   updated_at
 }: {
   did: string,
-  vector: App.Path[] | null,
+  vector: string | null,
   updated_at: string
 }) => {
   const response = await fetch(PUBLIC_WORKERS_URL, {

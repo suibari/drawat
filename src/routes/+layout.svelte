@@ -11,33 +11,31 @@
   import { OAuthSession } from '@atproto/oauth-client-browser';
   import Login from '$lib/components/Login.svelte';
 
-  const drawingData = writable<App.Path[]>([]);
+  const myDrawingData = writable<string>();
+  const pastDrawingData = writable<string[]>([]);
   const dids = writable<string[]>([]);
   const did = writable<string>();
+  const isLoading = writable<boolean>(true);
 
   let session: OAuthSession | null = $state(null);
-  let isLoading = $state(false);
   let isLoggingOut = $state(false);
   let aboutModal = $state(false);
   let loginModal = $state(false);
 
-  setContext("drawingData", drawingData);
+  setContext("myDrawingData", myDrawingData);
+  setContext("pastDrawingData", pastDrawingData);
   setContext("dids", dids);
   setContext("did", did);
+  setContext("isLoading", isLoading)
 
   let { children } = $props();
 
   onMount(async () => {
-    isLoading = true;
+    isLoading.set(true);
 
     await initOAuthClient();
 
-    const result = await getRecordsVector();
-    if (result) {
-      drawingData.set(result.paths);
-      dids.set(result.dids);
-    }
-
+    // ログイン情報保存
     const storedSession = localStorage.getItem('oauth_session');
     if (storedSession) {
       try {
@@ -48,7 +46,15 @@
       }
     }
 
-    isLoading = false;
+    // Canvas描画
+    const result = await getRecordsVector($did);
+    if (result) {
+      myDrawingData.set(result.myDrawingData)
+      pastDrawingData.set(result.pastDrawingData);
+      dids.set(result.dids);
+    }
+
+    isLoading.set(false);
   });
 
   const handleLogout = async () => {
@@ -60,9 +66,11 @@
     did.set("");
 
     // 画像削除されたことをユーザに見せる
-    const result = await getRecordsVector();
+    const result = await getRecordsVector($did);
     if (result) {
-      drawingData.set(result.paths);
+      myDrawingData.set(result.myDrawingData)
+      pastDrawingData.set(result.pastDrawingData);
+      dids.set(result.dids);
     }
 
     isLoggingOut = false;
@@ -88,7 +96,7 @@
   {@render children()}
 </div>
 
-{#if isLoading}
+{#if $isLoading}
   <Spinner text="Getting Records..."/>
 {:else if isLoggingOut}
   <Spinner text="Logging-out..."/>
