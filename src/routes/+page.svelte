@@ -41,13 +41,18 @@
       if (result) {
         myDrawingData.set(undefined);
         pastDrawingData.set(result.pastDrawingData);
-        await canvasComponent?.loadPastDrawings();
 
         dids.set(result.dids);
       }
       isDeleteing = false;
     }
   };
+
+  $effect(() => {
+    if ($myDrawingData === undefined) {
+      canvasComponent?.loadPastDrawings();
+    }
+  });
 </script>
 
 <div class="flex justify-center mb-2">

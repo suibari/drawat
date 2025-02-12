@@ -11,7 +11,7 @@
   import { OAuthSession } from '@atproto/oauth-client-browser';
   import Login from '$lib/components/Login.svelte';
 
-  const myDrawingData = writable<string>();
+  const myDrawingData = writable<string|undefined>();
   const pastDrawingData = writable<string[]>([]);
   const dids = writable<string[]>([]);
   const did = writable<string>();
@@ -66,7 +66,7 @@
     // 画像削除されたことをユーザに見せる
     const result = await getRecordsVector($did);
     if (result) {
-      myDrawingData.set(result.myDrawingData)
+      myDrawingData.set(undefined)
       pastDrawingData.set(result.pastDrawingData);
       dids.set(result.dids);
     }

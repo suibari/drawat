@@ -22,6 +22,7 @@ export let session: OAuthSession | null = null;
 export async function initOAuthClient(provider: string): Promise<BrowserOAuthClient | null> {
   if (!browser || client !== null) return null;
 
+  // LoopbackIPを使え、と出たら、clientMetadataをundefinedにして1度試行してから元に戻す。意味わからん…
   client = new BrowserOAuthClient({
     handleResolver: provider,
     clientMetadata: {
