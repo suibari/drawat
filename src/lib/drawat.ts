@@ -48,17 +48,17 @@ export async function getRecordsVector(myDid: string): Promise<{
     const data = await getAllRows();
     const filteredData = data
       .filter(row => new Date(row.updated_at).getTime() >= oneWeekAgo) // 1週間以内のデータのみ抽出
-      .filter(row => !Array.isArray(row.vector)); // 旧形式データは除外
+      .filter(row => row.vector !== null && !Array.isArray(row.vector)); // ログインのみ、かつ旧形式データは除外
 
     const dids = filteredData
-      .filter(row => row.vector !== null)
       .map(row => row.did);
 
     const myDrawingData = filteredData
       .filter(row => row.did === myDid)[0]?.vector;
 
     const pastDrawingData = filteredData
-      .filter(row => row.did !== myDid).map(row => row.vector);
+      .filter(row => row.did !== myDid)
+      .map(row => row.vector);
 
     console.log(`[INFO] my records: ${myDrawingData}`);
     console.log(`[INFO] others records, length: ${pastDrawingData.length}`);
