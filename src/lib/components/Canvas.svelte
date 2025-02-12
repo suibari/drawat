@@ -2,6 +2,8 @@
   import { onMount, onDestroy } from "svelte";
   import * as fabric from "fabric";
 
+  const MAX_STACK_SIZE = 10;
+
   let {
     pastDrawingData,
     myDrawingData = $bindable(),
@@ -105,6 +107,10 @@
       const newState = JSON.stringify(tmpCanvas);
 
       undoStack.push(newState);
+      if (undoStack.length > MAX_STACK_SIZE) {
+        undoStack.shift();
+      }
+
       myDrawingData = newState;
 
       redoStack = []; // アンドゥ後のリドゥ履歴をリセット
@@ -118,11 +124,16 @@
     if (undoStack.length > 1) {
       lockHistory = true;
       redoStack.push(undoStack.pop()!);
-      const content = undoStack[undoStack.length - 1];
 
+      // リドゥスタックがオーバーしたら古いものを削除
+      if (redoStack.length > MAX_STACK_SIZE) {
+        redoStack.shift();
+      }
+
+      const content = undoStack[undoStack.length - 1];
       canvas.loadFromJSON(content, () => {
-        canvas.requestRenderAll(); // renderAllだとうまくいかない
-        setTimeout(() => (lockHistory = false), 0); // setTimeoutで非同期実行し、完全に描画が終わった後に解除。こうしないとダメ
+        canvas.requestRenderAll();
+        setTimeout(() => (lockHistory = false), 0);
       });
     }
   };
@@ -137,9 +148,14 @@
       const content = redoStack.pop()!;
       undoStack.push(content);
 
+      // アンドゥスタックがオーバーしたら古いものを削除
+      if (undoStack.length > MAX_STACK_SIZE) {
+        undoStack.shift();
+      }
+
       canvas.loadFromJSON(content, () => {
-        canvas.requestRenderAll(); // renderAllだとうまくいかない
-        setTimeout(() => (lockHistory = false), 0); // setTimeoutで非同期実行し、完全に描画が終わった後に解除。こうしないとダメ
+        canvas.requestRenderAll();
+        setTimeout(() => (lockHistory = false), 0);
       });
     }
   };
