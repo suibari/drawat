@@ -105,7 +105,6 @@
       const newState = fabricObjectsToJSON(allDrawingObjs);
       myDrawingData = fabricObjectsToJSON(myDrawingObjs); 
 
-      console.log(myDrawingData);
       undoStack.push(newState);
       if (undoStack.length > MAX_STACK_SIZE) {
         undoStack.shift();
