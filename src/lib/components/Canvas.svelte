@@ -50,25 +50,41 @@
    * すべての過去データをCanvasに適用
    */
   export const loadPastDrawings = async () => {
-    if (!pastDrawingData || !canvas) return;
+    if (!canvas) return;
 
-    for (const data of pastDrawingData) {
-      try {
-        lockHistory = true;
-        // `fabric.js` の JSON 形式なら通常通り適用
-        await new Promise((resolve) => {
-          canvas.loadFromJSON(data, () => {
-            canvas.getObjects().forEach(obj => {
-              obj.set("pastDrawingData", true);
-            });
-            canvas.requestRenderAll();
-            resolve(true);
-          });
+    lockHistory = true;
+
+    // すべての過去データを適用
+    for (const data of pastDrawingData || []) {
+      await loadCanvasFromJSON(data, true);
+    }
+
+    // `myDrawingData` がある場合は適用
+    if (myDrawingData) {
+      await loadCanvasFromJSON(myDrawingData, false);
+    }
+
+    lockHistory = false; // なぜかここは非同期だとうまくいかない…
+  };
+
+  /**
+   * JSONデータをCanvasに適用する関数
+   * @param jsonData 適用するJSONデータ
+   * @param isOhtersData `true`ならothersDrawingDataを付与
+   */
+  const loadCanvasFromJSON = async (jsonData: string, isOhtersData: boolean) => {
+    try {
+      await new Promise((resolve) => {
+        canvas.loadFromJSON(jsonData, () => {
+          if (isOhtersData) {
+            canvas.getObjects().forEach(obj => obj.set("othersDrawingData", true));
+          }
+          canvas.requestRenderAll();
+          setTimeout(resolve, 0); // 初期画像を表示してからsaveStateを行うため、レンダリング完了を確実に待つ
         });
-        setTimeout(() => (lockHistory = false), 0); // setTimeoutで非同期実行し、完全に描画が終わった後に解除。こうしないとダメ
-      } catch (error) {
-        console.error("Error loading past drawing:", error);
-      }
+      });
+    } catch (error) {
+      console.error("Error loading drawing:", error);
     }
   };
 
@@ -78,7 +94,7 @@
   const saveState = async () => {
     if (!readOnly && !lockHistory) {
       const tmpCanvas = new fabric.Canvas('tmpCanvas');
-      const drawableObjects = canvas.getObjects().filter(obj => obj.get("pastDrawingData") !== true);
+      const drawableObjects = canvas.getObjects().filter(obj => obj.get("othersDrawingData") !== true);
       const clonedObjects = await Promise.all(drawableObjects.map(obj => obj.clone()));
       clonedObjects.forEach(clonedObj => tmpCanvas.add(clonedObj));
       const newState = JSON.stringify(tmpCanvas);

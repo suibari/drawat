@@ -35,14 +35,6 @@
 
     await initOAuthClient();
 
-    // Canvas描画
-    const result = await getRecordsVector($did);
-    if (result) {
-      myDrawingData.set(result.myDrawingData)
-      pastDrawingData.set(result.pastDrawingData);
-      dids.set(result.dids);
-    }
-
     // ログイン情報保存
     const storedSession = localStorage.getItem('oauth_session');
     if (storedSession) {
@@ -52,6 +44,14 @@
       } catch (error) {
         console.error("Failed to parse OAuth session:", error);
       }
+    }
+
+    // Canvas描画
+    const result = await getRecordsVector($did);
+    if (result) {
+      myDrawingData.set(result.myDrawingData)
+      pastDrawingData.set(result.pastDrawingData);
+      dids.set(result.dids);
     }
 
     isLoading.set(false);
