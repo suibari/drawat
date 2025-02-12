@@ -1,6 +1,6 @@
-import { PUBLIC_WORKERS_URL } from "$env/static/public";
 import { agent } from "./oauth";
 import { AtpAgent } from '@atproto/api';
+import { deleteRow, getAllRows, postRow } from "./supabase";
 
 const collection = 'blue.drawat.vector';
 const rkey = 'self';
@@ -29,6 +29,7 @@ export async function putRecordVector({
   }
 
   try {
+    // User Repo保存
     const response = await agent?.com.atproto.repo.putRecord({
       repo: did,
       collection,
@@ -36,56 +37,28 @@ export async function putRecordVector({
       record,
     });
     console.log(`[INFO] successful put record`);
+
+    // supabase登録
+    await postRow({did, vector: paths, updated_at: new Date().toISOString()});
   } catch (error) {
     console.error("Failed to put record:", error);
   }
 }
 
 export async function getRecordsVector(): Promise<{ paths: App.Path[]; dids: string[] } | null> {
-  const result: App.Path[] = [];
-  let dids: string[] = [];
   const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000; // 1週間前のタイムスタンプ
 
   try {
-    // 全認証済みユーザのDID取得
-    const response = await fetch(PUBLIC_WORKERS_URL, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const data = await getAllRows();
+    const filteredData = data.filter(row => new Date(row.updated_at).getTime() >= oneWeekAgo);
+    const dids = filteredData
+      .filter(row => row.vector?.length > 0)
+      .map(row => row.did);
+    const paths = filteredData
+      .flatMap(row => row.vector?.length > 0 ? row.vector : []);
 
-    const data = await response.json() as { did: string; created_at: string }[];
-    dids = data.map(d => d.did);
-
-    // didsの全てのblue.drawat.vectorのrecordを収集
-    const agent = new AtpAgent({ service: 'https://bsky.social' });
-    
-    for (const did of dids) {
-      try {
-        const response = await agent.com.atproto.repo.getRecord({
-          repo: did,
-          collection,
-          rkey,
-        });
-        if (response) {
-          const value = response.data.value as App.RecordVector;
-          const createdAt = new Date(value.createdAt).getTime();
-
-          if (createdAt >= oneWeekAgo) {
-            result.push(...value.paths);
-          } else {
-            console.log(`[INFO] Skipped old record for DID: ${did}`);
-          }
-        }
-      } catch (error) {
-        console.warn(`[WARN] Failed to get record for DID: ${did}, skipping...`, error);
-        continue; // エラーを無視して次のdidへ
-      }
-    }
-
-    console.log(`[INFO] Successfully got records, length: ${result.length}`);
-    return { paths: result, dids };
+    console.log(`[INFO] Successfully got records, length: ${paths.length}`);
+    return { paths, dids };
   } catch (error) {
     console.error("Failed to get records:", error);
     return null;
@@ -99,6 +72,9 @@ export async function deleteRecordVector(did: string): Promise<void> {
       collection,
       rkey,
     });
+
+    // supabase削除
+    await deleteRow(did);
     console.log(`[INFO] successful delete record`);
   } catch (error) {
     console.error("Failed to delete record:", error);

@@ -1,10 +1,11 @@
-import { PUBLIC_WORKERS_URL, PUBLIC_NODE_ENV } from '$env/static/public';
+import { PUBLIC_WORKERS_URL, PUBLIC_NODE_ENV, PUBLIC_LOCAL_API_KEY } from '$env/static/public';
 import { PUBLIC_URL } from '$env/static/public';
 import { browser } from '$app/environment';
 import { BrowserOAuthClient, OAuthSession } from '@atproto/oauth-client-browser';
 import { openDB } from 'idb';
 import { Agent } from '@atproto/api';
 import { deleteRecordVector } from './drawat';
+import { deleteRow, postRow } from './supabase';
 
 const url = PUBLIC_URL || `http://127.0.0.1:5173`;
 const enc = encodeURIComponent;
@@ -60,7 +61,7 @@ export async function login(handle: string): Promise<void> {
   sessionStorage.setItem('handle', handle);
 
   const authUrl: string = await client.signIn(handle, {
-    prompt: 'consent',
+    prompt: 'login',
     ui_locales: 'ja-JP',
   });
   window.location.href = authUrl;
@@ -88,15 +89,7 @@ export async function logout(did: string): Promise<void> {
     await deleteRecordVector(did);
 
     // supabase削除
-    const response = await fetch(PUBLIC_WORKERS_URL, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        did
-      }),
-    });
+    await deleteRow(did);
 
     console.log(`[INFO] successful log-out`);
   } catch (error) {
@@ -118,20 +111,11 @@ export async function handleCallback(): Promise<void> {
     session = await client.restore(did);
     localStorage.setItem('oauth_session', JSON.stringify(session));
 
-    // 必要ならSupabaseにユーザー情報を保存
-    const response = await fetch(PUBLIC_WORKERS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        did
-      }),
+    await postRow({
+      did,
+      vector: null,
+      updated_at: new Date().toISOString(),
     });
-  
-    if (!response.ok) {
-      console.error('Failed to save user data to Supabase:', await response.json());
-    }
   }
 }
 
