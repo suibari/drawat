@@ -15,7 +15,8 @@
     readOnly: boolean
   } = $props();
 
-  let canvas: fabric.Canvas;
+  let drawingCanvas: fabric.Canvas;
+  let backgroundCanvas: fabric.StaticCanvas;
   let eraser: EraserBrush;
   let undoStack: string[] = [];
   let redoStack: string[] = [];
@@ -28,18 +29,19 @@
    * 初回マウント時の処理
    */
   onMount(async () => {
-    canvas = new fabric.Canvas("drawingCanvas");
-    canvas.isDrawingMode = !readOnly; // readOnlyなら描画不可
+    drawingCanvas = new fabric.Canvas("drawingCanvas");
+    drawingCanvas.isDrawingMode = true;
+    backgroundCanvas = new fabric.StaticCanvas("backgroundCanvas");
 
     // 消しゴムインスタンス
-    eraser = new EraserBrush(canvas);
+    eraser = new EraserBrush(drawingCanvas);
     eraser.width = 30;
 
     // ペンの初期設定
-    if (!canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-      canvas.freeDrawingBrush.color = "#000000";
-      canvas.freeDrawingBrush.width = 5;
+    if (!drawingCanvas.freeDrawingBrush) {
+      drawingCanvas.freeDrawingBrush = new fabric.PencilBrush(drawingCanvas);
+      drawingCanvas.freeDrawingBrush.color = "#000000";
+      drawingCanvas.freeDrawingBrush.width = 5;
     }
 
     // myDrawingDataは消しゴムで消せる
@@ -53,42 +55,42 @@
     console.log("myDrawingData", myDrawingData?.length);
 
     // myDrawingDataとothersDrawingDataを読み込む
-    await loadPastDrawings();
+    await loadAllDrawings();
 
     // 初期状態をスタックに保存
-    undoStack.push(canvas.toJSON());
+    undoStack.push(drawingCanvas.toJSON());
 
     // 描画変更時にデータ保存
-    canvas.on("object:modified", saveState);
-    canvas.on("object:added", saveState);
+    drawingCanvas.on("object:modified", saveState);
+    drawingCanvas.on("object:added", saveState);
 
     // 新規に描いたオブジェクトは消しゴムで消せる
-    canvas.on("object:added", (e) => {
+    drawingCanvas.on("object:added", (e) => {
       e.target.erasable = true;
     });
   });
 
   onDestroy(() => {
-    canvas.dispose();
+    drawingCanvas.dispose();
+    backgroundCanvas.dispose();
   });
 
   /**
    * すべての過去データをCanvasに適用（統合処理）
    */
-  export const loadPastDrawings = async () => {
-    if (!canvas) return;
-
+  const loadAllDrawings = async () => {
     lockHistory = true;
     
     for (const data of pastDrawingData || []) {
-      await mergeCanvasFromJSON(data, true);
+      await mergeCanvasFromJSON(backgroundCanvas, data, true);
     }
 
     if (myDrawingData) {
-      await mergeCanvasFromJSON(myDrawingData, false);
+      await mergeCanvasFromJSON(drawingCanvas, myDrawingData, false);
     }
 
-    canvas.requestRenderAll();
+    backgroundCanvas.requestRenderAll();
+    drawingCanvas.requestRenderAll();
     lockHistory = false;
   };
 
@@ -96,7 +98,7 @@
    * JSONデータをCanvasに統合する関数（オブジェクト単位）
    * @param jsonData 統合するJSONデータ
    */
-  const mergeCanvasFromJSON = async (jsonData: string, isOthersData: boolean) => {
+  const mergeCanvasFromJSON = async (canvas: fabric.Canvas|fabric.StaticCanvas, jsonData: string, isOthersData: boolean) => {
     try {
       const tmpCanvas = new fabric.StaticCanvas(undefined); // 描画用のDOM要素なし
       await new Promise((resolve) => {
@@ -120,7 +122,7 @@
    */
   const saveState = async () => {
     if (!readOnly && !lockHistory) {
-      const allDrawingObjs = canvas.getObjects();
+      const allDrawingObjs = drawingCanvas.getObjects();
       const myDrawingObjs = allDrawingObjs.filter(obj => obj.get("othersDrawingData") !== true);
 
       const newState = fabricObjectsToJSON(allDrawingObjs);
@@ -144,6 +146,15 @@
   };
 
   /**
+   * 自分の描画をクリア
+   */
+  export const deleteMyDrawing = () => {
+    if (!readOnly) {
+      drawingCanvas.clear();
+    }
+  }
+
+  /**
    * アンドゥ（Ctrl + Z）
    */
   const undo = () => {
@@ -157,8 +168,8 @@
       }
 
       const content = undoStack[undoStack.length - 1];
-      canvas.loadFromJSON(content, () => {
-        canvas.requestRenderAll();
+      drawingCanvas.loadFromJSON(content, () => {
+        drawingCanvas.requestRenderAll();
         setTimeout(() => (lockHistory = false), 0);
       });
     }
@@ -179,8 +190,8 @@
         undoStack.shift();
       }
 
-      canvas.loadFromJSON(content, () => {
-        canvas.requestRenderAll();
+      drawingCanvas.loadFromJSON(content, () => {
+        drawingCanvas.requestRenderAll();
         setTimeout(() => (lockHistory = false), 0);
       });
     }
@@ -191,8 +202,8 @@
    */
   const changeSize = (e: Event) => {
     const size = (e.target as HTMLInputElement).valueAsNumber;
-    if (canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.width = size;
+    if (drawingCanvas.freeDrawingBrush) {
+      drawingCanvas.freeDrawingBrush.width = size;
     }
   };
 
@@ -201,8 +212,8 @@
    */
   const changeColor = (e: Event) => {
     const color = (e.target as HTMLInputElement).value;
-    if (canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = color;
+    if (drawingCanvas.freeDrawingBrush) {
+      drawingCanvas.freeDrawingBrush.color = color;
       lastColor = color; // 色を変更したら保存
     }
   };
@@ -211,14 +222,14 @@
    * 消しゴムモード切り替え
    */
   const toggleEraser = () => {
-    if (canvas.freeDrawingBrush) {
+    if (drawingCanvas.freeDrawingBrush) {
       if (!isEraser) {
         // 消しゴムにする前に元の色を保存
-        lastBrush = canvas.freeDrawingBrush;
-        canvas.freeDrawingBrush = eraser;
+        lastBrush = drawingCanvas.freeDrawingBrush;
+        drawingCanvas.freeDrawingBrush = eraser;
       } else {
         // 消しゴム解除時に元の色に戻す
-        canvas.freeDrawingBrush = lastBrush;
+        drawingCanvas.freeDrawingBrush = lastBrush;
       }
       isEraser = !isEraser;
     }
@@ -239,7 +250,10 @@
 </script>
 
 <div class="flex flex-col md:flex-row">
-  <canvas id="drawingCanvas" width="300" height="500" class="border-2"></canvas>
+  <div class="relative">
+    <canvas id="backgroundCanvas" width="300" height="500" class="absolute"></canvas>
+    <canvas id="drawingCanvas" width="300" height="500" class="relative"></canvas>
+  </div>
   {#if !readOnly}
     <div class="flex flex-col gap-2 mx-2 my-2">
       <button class="button-sky" onclick={undo}>Undo (Ctrl+Z)</button>

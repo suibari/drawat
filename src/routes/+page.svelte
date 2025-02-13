@@ -50,7 +50,7 @@
 
   $effect(() => {
     if ($myDrawingData === undefined) {
-      canvasComponent?.loadPastDrawings();
+      canvasComponent?.deleteMyDrawing();
     }
   });
 </script>
