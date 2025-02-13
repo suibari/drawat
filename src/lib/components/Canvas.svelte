@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import * as fabric from "fabric";
-    import { json } from "@sveltejs/kit";
+  import { EraserBrush, ClippingGroup } from '@erase2d/fabric';
 
   const MAX_STACK_SIZE = 10;
 
@@ -16,11 +16,13 @@
   } = $props();
 
   let canvas: fabric.Canvas;
+  let eraser: EraserBrush;
   let undoStack: string[] = [];
   let redoStack: string[] = [];
   let lockHistory = false; // Undo/Redo/Loading中にSaveさせないためのフラグ
   let isEraser = $state(false);
   let lastColor = "#000000"; // 最後に使っていた色を保存
+  let lastBrush: fabric.BaseBrush | undefined; // 消しゴムにする前のブラシを保存
 
   /**
    * 初回マウント時の処理
@@ -29,6 +31,10 @@
     canvas = new fabric.Canvas("drawingCanvas");
     canvas.isDrawingMode = !readOnly; // readOnlyなら描画不可
 
+    // 消しゴムインスタンス
+    eraser = new EraserBrush(canvas);
+    eraser.width = 30;
+
     // ペンの初期設定
     if (!canvas.freeDrawingBrush) {
       canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
@@ -36,15 +42,30 @@
       canvas.freeDrawingBrush.width = 5;
     }
 
-    // 過去の描画データを読み込む
+    // myDrawingDataは消しゴムで消せる
+    if (myDrawingData) {
+      const objs = JSON.parse(myDrawingData).objects;
+      objs.forEach((obj: fabric.Object) => {
+        obj.erasable = true;
+      });
+      myDrawingData = JSON.stringify({ objects: objs });
+    }
+    console.log("myDrawingData", myDrawingData?.length);
+
+    // myDrawingDataとothersDrawingDataを読み込む
     await loadPastDrawings();
 
     // 初期状態をスタックに保存
     undoStack.push(canvas.toJSON());
 
     // 描画変更時にデータ保存
-    canvas.on("object:added", saveState);
     canvas.on("object:modified", saveState);
+    canvas.on("object:added", saveState);
+
+    // 新規に描いたオブジェクトは消しゴムで消せる
+    canvas.on("object:added", (e) => {
+      e.target.erasable = true;
+    });
   });
 
   onDestroy(() => {
@@ -193,11 +214,11 @@
     if (canvas.freeDrawingBrush) {
       if (!isEraser) {
         // 消しゴムにする前に元の色を保存
-        lastColor = canvas.freeDrawingBrush.color as string;
-        canvas.freeDrawingBrush.color = "white"; // 消しゴム（背景色）
+        lastBrush = canvas.freeDrawingBrush;
+        canvas.freeDrawingBrush = eraser;
       } else {
         // 消しゴム解除時に元の色に戻す
-        canvas.freeDrawingBrush.color = lastColor;
+        canvas.freeDrawingBrush = lastBrush;
       }
       isEraser = !isEraser;
     }
