@@ -33,6 +33,8 @@
     drawingCanvas.isDrawingMode = true;
     backgroundCanvas = new fabric.StaticCanvas("backgroundCanvas");
 
+    fabric.FabricObject.prototype.objectCaching = false; // 軽量化処理: オブジェクトキャッシュを無効化
+    
     // 消しゴムインスタンス
     eraser = new EraserBrush(drawingCanvas);
     eraser.width = 30;
@@ -80,14 +82,18 @@
    */
   const loadAllDrawings = async () => {
     lockHistory = true;
-    
+
+    backgroundCanvas.renderOnAddRemove = false; // 軽量化処理: 追加時の再描画を一時無効化
     await mergeAllCanvasData(backgroundCanvas, pastDrawingData || []);
+    backgroundCanvas.renderOnAddRemove = true;
     backgroundCanvas.requestRenderAll();
 
     if (myDrawingData) {
+      drawingCanvas.renderOnAddRemove = false; // 軽量化処理: 追加時の再描画を一時無効化
       await mergeAllCanvasData(drawingCanvas, [myDrawingData]);
+      drawingCanvas.renderOnAddRemove = true;
+      drawingCanvas.requestRenderAll();
     }
-    drawingCanvas.requestRenderAll();
 
     lockHistory = false;
   };
