@@ -30,11 +30,10 @@
    */
   onMount(async () => {
     drawingCanvas = new fabric.Canvas("drawingCanvas");
-    drawingCanvas.isDrawingMode = true;
+    drawingCanvas.isDrawingMode = !readOnly;
     backgroundCanvas = new fabric.StaticCanvas("backgroundCanvas");
 
-    fabric.FabricObject.prototype.objectCaching = false; // 軽量化処理: オブジェクトキャッシュを無効化
-    fabric.FabricObject.ownDefaults.objectCaching = false;
+    fabric.FabricObject.ownDefaults.objectCaching = false; // 軽量化処理: オブジェクトキャッシュを無効化
 
     // 消しゴムインスタンス
     eraser = new EraserBrush(drawingCanvas);
