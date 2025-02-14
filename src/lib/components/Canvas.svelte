@@ -96,21 +96,24 @@
 
   /**
    * JSONデータをCanvasに統合する関数（オブジェクト単位）
+   * tmpCanvasを使って一時的にオブジェクトを作成し、それをクローンしてCanvasに追加する
+   * こうしないと3人目以降のデータをレンダリングできない
    * @param jsonData 統合するJSONデータ
    */
-  const mergeCanvasFromJSON = async (canvas: fabric.Canvas|fabric.StaticCanvas, jsonData: string, isOthersData: boolean) => {
+   const mergeCanvasFromJSON = async (canvas: fabric.Canvas | fabric.StaticCanvas, jsonData: string, isOthersData: boolean) => {
     try {
       const tmpCanvas = new fabric.StaticCanvas(undefined); // 描画用のDOM要素なし
-      await new Promise((resolve) => {
-        tmpCanvas.loadFromJSON(jsonData)
-          .then(() => {
-            const objs = tmpCanvas.getObjects();
-            objs.forEach((obj) => {
-              obj.set("othersDrawingData", isOthersData);
-              canvas.add(obj); // 既存キャンバスに追加
+      await new Promise<void>((resolve) => {
+        tmpCanvas.loadFromJSON(jsonData).then(() => {
+          const objs = tmpCanvas.getObjects();
+          for (const obj of objs) {
+            obj.set("othersDrawingData", isOthersData);
+            obj.clone().then((clonedObj) => {
+              canvas.add(clonedObj); // クローンを追加
             });
-            resolve(null);
-          });
+          }
+          resolve();
+        });
       });
     } catch (error) {
       console.error("Error merging drawing:", error);
