@@ -109,7 +109,7 @@
       for (const data of pastDrawingData) {
         const parsedData = JSON.parse(data);
         if (parsedData.objects) {
-          mergedObjects = mergedObjects.concat(parsedData.objects);
+          mergedObjects = mergedObjects.concat(filterObjects(parsedData.objects));
         }
       }
 
@@ -126,6 +126,22 @@
     } catch (error) {
       console.error("Error merging drawings:", error);
     }
+  };
+
+  /**
+   * 描画不要なオブジェクトをフィルタリング
+   * @param objects
+   */
+  const filterObjects = (objects: fabric.FabricObject[]) => {
+    return objects.filter(obj => {
+      // 透明なオブジェクトは除外
+      if (obj.stroke === "white" || obj.stroke === "#ffffff") return false;
+      // 極端に小さいオブジェクトも除外
+      if (obj.width !== undefined && obj.height !== undefined) {
+        if (obj.width < 2 && obj.height < 2) return false;
+      }
+      return true;
+    });
   };
 
   /**
