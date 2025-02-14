@@ -81,42 +81,49 @@
   const loadAllDrawings = async () => {
     lockHistory = true;
     
-    for (const data of pastDrawingData || []) {
-      await mergeCanvasFromJSON(backgroundCanvas, data, true);
-    }
+    await mergeAllCanvasData(backgroundCanvas, pastDrawingData || []);
+    backgroundCanvas.requestRenderAll();
 
     if (myDrawingData) {
-      await mergeCanvasFromJSON(drawingCanvas, myDrawingData, false);
+      await mergeAllCanvasData(drawingCanvas, [myDrawingData]);
     }
-
-    backgroundCanvas.requestRenderAll();
     drawingCanvas.requestRenderAll();
+
     lockHistory = false;
   };
 
   /**
-   * JSONデータをCanvasに統合する関数（オブジェクト単位）
-   * tmpCanvasを使って一時的にオブジェクトを作成し、それをクローンしてCanvasに追加する
-   * こうしないと3人目以降のデータをレンダリングできない
+   * JSONデータをCanvasに統合する関数
    * @param jsonData 統合するJSONデータ
    */
-   const mergeCanvasFromJSON = async (canvas: fabric.Canvas | fabric.StaticCanvas, jsonData: string, isOthersData: boolean) => {
+  const mergeAllCanvasData = async (
+    canvas: fabric.StaticCanvas,
+    pastDrawingData: string[]
+  ) => {
     try {
-      const tmpCanvas = new fabric.StaticCanvas(undefined); // 描画用のDOM要素なし
+      if (!pastDrawingData || pastDrawingData.length === 0) return;
+
+      // すべてのデータを統合
+      let mergedObjects: any[] = [];
+
+      for (const data of pastDrawingData) {
+        const tmpCanvas = new fabric.StaticCanvas(undefined);
+        await tmpCanvas.loadFromJSON(data);
+        mergedObjects = mergedObjects.concat(tmpCanvas.getObjects());
+      }
+
+      // 統合データをJSON化
+      const mergedJSON = JSON.stringify({ objects: mergedObjects });
+
+      // 統合したデータを一括適用
       await new Promise<void>((resolve) => {
-        tmpCanvas.loadFromJSON(jsonData).then(() => {
-          const objs = tmpCanvas.getObjects();
-          for (const obj of objs) {
-            obj.set("othersDrawingData", isOthersData);
-            obj.clone().then((clonedObj) => {
-              canvas.add(clonedObj); // クローンを追加
-            });
-          }
+        canvas.loadFromJSON(mergedJSON, () => {
           resolve();
         });
       });
+
     } catch (error) {
-      console.error("Error merging drawing:", error);
+      console.error("Error merging drawings:", error);
     }
   };
 
@@ -125,13 +132,11 @@
    */
   const saveState = async () => {
     if (!readOnly && !lockHistory) {
-      const allDrawingObjs = drawingCanvas.getObjects();
-      const myDrawingObjs = allDrawingObjs.filter(obj => obj.get("othersDrawingData") !== true);
+      const myDrawingObjs = drawingCanvas.getObjects();
 
-      const newState = fabricObjectsToJSON(allDrawingObjs);
       myDrawingData = fabricObjectsToJSON(myDrawingObjs); 
 
-      undoStack.push(newState);
+      undoStack.push(myDrawingData);
       if (undoStack.length > MAX_STACK_SIZE) {
         undoStack.shift();
       }
