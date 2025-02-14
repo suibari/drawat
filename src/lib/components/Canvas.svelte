@@ -103,13 +103,14 @@
     try {
       if (!pastDrawingData || pastDrawingData.length === 0) return;
 
-      // すべてのデータを統合
-      let mergedObjects: any[] = [];
+      let mergedObjects: fabric.Object[] = [];
 
+      // すべてのデータを統合
       for (const data of pastDrawingData) {
-        const tmpCanvas = new fabric.StaticCanvas(undefined);
-        await tmpCanvas.loadFromJSON(data);
-        mergedObjects = mergedObjects.concat(tmpCanvas.getObjects());
+        const parsedData = JSON.parse(data);
+        if (parsedData.objects) {
+          mergedObjects = mergedObjects.concat(parsedData.objects);
+        }
       }
 
       // 統合データをJSON化
