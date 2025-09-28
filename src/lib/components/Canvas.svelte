@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import * as fabric from "fabric";
-  import { EraserBrush, ClippingGroup } from '@erase2d/fabric';
 
   const MAX_STACK_SIZE = 10;
 
@@ -17,13 +16,11 @@
 
   let drawingCanvas: fabric.Canvas;
   let backgroundCanvas: fabric.StaticCanvas;
-  let eraser: EraserBrush;
   let undoStack: string[] = [];
   let redoStack: string[] = [];
   let lockHistory = false; // Undo/Redo/Loading中にSaveさせないためのフラグ
   let isEraser = $state(false);
   let lastColor = "#000000"; // 最後に使っていた色を保存
-  let lastBrush: fabric.BaseBrush | undefined; // 消しゴムにする前のブラシを保存
   let currentColor = $state("#000000"); // 現在選択されている色
 
   /**
@@ -36,28 +33,13 @@
 
     fabric.FabricObject.ownDefaults.objectCaching = false; // 軽量化処理: オブジェクトキャッシュを無効化
 
-    // 消しゴムインスタンス
-    eraser = new EraserBrush(drawingCanvas);
-    eraser.width = 30;
-
     // ペンの初期設定
     if (!drawingCanvas.freeDrawingBrush) {
       const initialBrush = new fabric.PencilBrush(drawingCanvas);
       initialBrush.color = "#000000";
       initialBrush.width = 5;
       drawingCanvas.freeDrawingBrush = initialBrush;
-      lastBrush = initialBrush; // lastBrushを初期化
     }
-
-    // myDrawingDataは消しゴムで消せる
-    if (myDrawingData) {
-      const objs = JSON.parse(myDrawingData).objects;
-      objs.forEach((obj: fabric.Object) => {
-        obj.erasable = true;
-      });
-      myDrawingData = JSON.stringify({ objects: objs });
-    }
-    console.log("myDrawingData", myDrawingData?.length);
 
     // myDrawingDataとothersDrawingDataを読み込む
     await loadAllDrawings();
@@ -69,9 +51,27 @@
     drawingCanvas.on("object:modified", saveState);
     drawingCanvas.on("object:added", saveState);
 
-    // 新規に描いたオブジェクトは消しゴムで消せる
-    drawingCanvas.on("object:added", (e) => {
-      e.target.erasable = true;
+    // パスが作成されたときに、消しゴムモードであれば交差するオブジェクトを削除
+    drawingCanvas.on("path:created", (e) => {
+      console.log("path:created event fired", e.path);
+      if (isEraser && e.path) {
+        const newPath = e.path;
+        const objectsToRemove: fabric.Object[] = [];
+
+        drawingCanvas.forEachObject((obj) => {
+          // 新しく描かれたパス自身は対象外
+          if (obj !== newPath && newPath.intersectsWithObject(obj)) {
+            objectsToRemove.push(obj);
+          }
+        });
+
+        console.log("Objects to remove:", objectsToRemove);
+        objectsToRemove.forEach((obj) => {
+          drawingCanvas.remove(obj);
+        });
+        drawingCanvas.requestRenderAll(); // 削除後に再描画
+      }
+      saveState(); // パスが作成された後も状態を保存
     });
   });
 
@@ -159,7 +159,7 @@
   const saveState = async () => {
     if (!readOnly && !lockHistory) {
       const myDrawingObjs = drawingCanvas.getObjects();
-      const filteredDrawingObjs = filterObjects(myDrawingObjs); // 保存前に白色オブジェクトをフィルタリング
+      const filteredDrawingObjs = filterObjects(myDrawingObjs);
 
       myDrawingData = fabricObjectsToJSON(filteredDrawingObjs); 
 
@@ -262,11 +262,13 @@
     if (drawingCanvas.freeDrawingBrush) {
       if (!isEraser) {
         // 消しゴムにする前に元の色を保存
-        lastBrush = drawingCanvas.freeDrawingBrush;
-        drawingCanvas.freeDrawingBrush = eraser;
+        lastColor = drawingCanvas.freeDrawingBrush.color;
+        drawingCanvas.freeDrawingBrush.color = "#ffffff"; // 白に設定
+        currentColor = "#ffffff";
       } else {
         // 消しゴム解除時に元の色に戻す
-        drawingCanvas.freeDrawingBrush = lastBrush;
+        drawingCanvas.freeDrawingBrush.color = lastColor;
+        currentColor = lastColor;
       }
       isEraser = !isEraser;
     }
