@@ -1,4 +1,4 @@
-import { PUBLIC_WORKERS_URL, PUBLIC_NODE_ENV, PUBLIC_LOCAL_API_KEY } from '$env/static/public';
+import { PUBLIC_NODE_ENV } from '$env/static/public';
 import { PUBLIC_URL } from '$env/static/public';
 import { browser } from '$app/environment';
 import { BrowserOAuthClient, OAuthSession } from '@atproto/oauth-client-browser';
