@@ -1,7 +1,7 @@
 <script lang="ts">
   import Canvas from '$lib/components/Canvas.svelte';
   import { deleteRecordVector, getRecordsVector, putRecordVector } from '$lib/drawat';
-  import { getContext, onMount } from 'svelte';
+  import { getContext, onMount, onDestroy } from 'svelte';
   import { writable } from 'svelte/store';
   import DidsList from '$lib/components/DidsList.svelte';
   import Spinner from '$lib/components/Spinner.svelte';
@@ -16,6 +16,26 @@
   let isDeleteing = $state(false);
 
   let canvasComponent = $state<ReturnType<typeof Canvas>>();
+
+  let intervalId: ReturnType<typeof setInterval>;
+
+  onMount(() => {
+    // 1分ごとにgetRecordsVectorを呼び出す
+    intervalId = setInterval(async () => {
+      if ($did) {
+        console.log("[INFO] Fetching records in background...");
+        const result = await getRecordsVector($did);
+        if (result) {
+          pastDrawingData.set(result.pastDrawingData);
+          dids.set(result.dids);
+        }
+      }
+    }, 60 * 1000); // 1分 = 60000ミリ秒
+  });
+
+  onDestroy(() => {
+    clearInterval(intervalId);
+  });
 
   const saveDrawingData = async () => {
     if ($did && $myDrawingData) {
