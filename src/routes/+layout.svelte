@@ -39,6 +39,13 @@
       try {
         session = JSON.parse(storedSession) as OAuthSession;
         did.set(session.sub);
+
+        // agentを初期化
+        const provider = sessionStorage.getItem('provider');
+        if (provider) {
+          const { initOAuthClient } = await import('$lib/oauth');
+          await initOAuthClient(provider);
+        }
       } catch (error) {
         console.error("Failed to parse OAuth session:", error);
       }

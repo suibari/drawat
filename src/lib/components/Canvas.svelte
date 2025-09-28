@@ -24,6 +24,7 @@
   let isEraser = $state(false);
   let lastColor = "#000000"; // 最後に使っていた色を保存
   let lastBrush: fabric.BaseBrush | undefined; // 消しゴムにする前のブラシを保存
+  let currentColor = $state("#000000"); // 現在選択されている色
 
   /**
    * 初回マウント時の処理
@@ -41,9 +42,11 @@
 
     // ペンの初期設定
     if (!drawingCanvas.freeDrawingBrush) {
-      drawingCanvas.freeDrawingBrush = new fabric.PencilBrush(drawingCanvas);
-      drawingCanvas.freeDrawingBrush.color = "#000000";
-      drawingCanvas.freeDrawingBrush.width = 5;
+      const initialBrush = new fabric.PencilBrush(drawingCanvas);
+      initialBrush.color = "#000000";
+      initialBrush.width = 5;
+      drawingCanvas.freeDrawingBrush = initialBrush;
+      lastBrush = initialBrush; // lastBrushを初期化
     }
 
     // myDrawingDataは消しゴムで消せる
@@ -156,8 +159,9 @@
   const saveState = async () => {
     if (!readOnly && !lockHistory) {
       const myDrawingObjs = drawingCanvas.getObjects();
+      const filteredDrawingObjs = filterObjects(myDrawingObjs); // 保存前に白色オブジェクトをフィルタリング
 
-      myDrawingData = fabricObjectsToJSON(myDrawingObjs); 
+      myDrawingData = fabricObjectsToJSON(filteredDrawingObjs); 
 
       undoStack.push(myDrawingData);
       if (undoStack.length > MAX_STACK_SIZE) {
@@ -242,10 +246,12 @@
    * 色変更
    */
   const changeColor = (e: Event) => {
-    const color = (e.target as HTMLInputElement).value;
+    const newColor = (e.target as HTMLInputElement).value;
+
     if (drawingCanvas.freeDrawingBrush) {
-      drawingCanvas.freeDrawingBrush.color = color;
-      lastColor = color; // 色を変更したら保存
+      drawingCanvas.freeDrawingBrush.color = newColor;
+      lastColor = newColor; // 色を変更したら保存
+      currentColor = newColor;
     }
   };
 
@@ -293,7 +299,7 @@
       <p class="font-semibold">Stroke Size:</p>
       <input type="range" min="1" max="20" value="5" oninput={changeSize} />
       <p class="font-semibold">Color Picker:</p>
-      <input type="color" value="#000000" oninput={changeColor} />
+      <input type="color" bind:value={currentColor} oninput={changeColor} disabled={isEraser} />
     </div>
   {/if}
 </div>

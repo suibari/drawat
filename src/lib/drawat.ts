@@ -21,15 +21,15 @@ export async function putRecordVector({
   }
 
   try {
-    // User Repo保存: ATprotoオミットに伴い廃止
-    // const response = await agent?.com.atproto.repo.putRecord({
-    //   repo: did,
-    //   collection,
-    //   rkey,
-    //   record,
-    // });
-    // console.log(`[INFO] successful put record`);
-
+    // User Repo保存
+    const response = await agent?.com.atproto.repo.putRecord({
+      repo: did,
+      collection,
+      rkey,
+      record,
+    });
+    console.log(`[INFO] successful put record`);
+    
     // supabase登録
     await postRow({did, vector: paths, updated_at: new Date().toISOString()});
   } catch (error) {

@@ -19,6 +19,12 @@
 
   const saveDrawingData = async () => {
     if ($did && $myDrawingData) {
+      // オブジェクトが空の場合は保存しない
+      if ($myDrawingData === '{"objects":[]}') {
+        console.log("[INFO] No drawing data to save.");
+        return;
+      }
+
       isPostAndLoading = true;
 
       await putRecordVector({did: $did, paths: $myDrawingData});
